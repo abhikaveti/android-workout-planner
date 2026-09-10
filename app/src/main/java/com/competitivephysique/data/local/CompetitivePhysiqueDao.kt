@@ -56,6 +56,12 @@ interface CompetitivePhysiqueDao {
     @Query("SELECT * FROM workout_sessions WHERE planId = :planId AND status = 'COMPLETED' ORDER BY completedAt DESC LIMIT 1")
     suspend fun getLastCompletedSession(planId: String): WorkoutSessionEntity?
 
+    @Query("SELECT * FROM workout_sessions WHERE planId = :planId AND status = 'COMPLETED' ORDER BY completedAt DESC")
+    suspend fun getCompletedSessions(planId: String): List<WorkoutSessionEntity>
+
+    @Query("SELECT COUNT(*) FROM workout_sessions WHERE planId = :planId AND status = 'COMPLETED'")
+    suspend fun completedSessionCount(planId: String): Int
+
     @Query("SELECT * FROM workout_sessions WHERE id = :id LIMIT 1")
     suspend fun getSession(id: String): WorkoutSessionEntity?
 
@@ -70,7 +76,6 @@ interface CompetitivePhysiqueDao {
 
     @Query("SELECT * FROM set_logs WHERE workoutSessionId = :sessionId ORDER BY exerciseDefinitionId, setNumber")
     suspend fun getSetLogs(sessionId: String): List<SetLogEntity>
-
 
     @Query("DELETE FROM exercise_definitions WHERE workoutId IN (SELECT id FROM workout_definitions WHERE phaseId IN (SELECT id FROM training_phases WHERE planId = :planId))")
     suspend fun deleteExercisesForPlan(planId: String)
