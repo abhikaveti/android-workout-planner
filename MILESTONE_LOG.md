@@ -1,0 +1,138 @@
+# Competitive Physique — Feature-to-Feature Development Log
+
+This file is the running implementation log for the milestone roadmap.
+
+## M0 — Physical Build and UAT Stabilization
+
+**Status:** CODE HARDENING COMPLETE / DEVICE SIGN-OFF PENDING
+
+### Baseline
+- Branch started from `master`.
+- Baseline commit: `443b6383b54e0476ba270012164e69b7e1c03e6d`.
+- Existing MVP functionality retained; no completed feature was rewritten.
+
+### Verified from repository state
+- Local Room/SQLite persistence is present.
+- Plan import and validation are present.
+- Workout session/set persistence is present.
+- Workout completion and next-workout progression are present.
+- Workout history/progress wiring is present.
+- UAT hardening documentation records relationship indexes, plan replacement cleanup, resume behavior, set validation, and import safeguards.
+
+### Verification limitation
+A physical Android device/emulator and Android SDK are not available to this development session. Therefore the following cannot be honestly marked as executed here:
+
+- Real APK compilation
+- Physical installation
+- Launch on a physical device/emulator
+- Restart persistence test on-device
+- Device-side end-to-end UAT
+
+These remain explicit device-side verification steps for Android Studio or CI.
+
+### Exit decision
+The source baseline is suitable for feature development. M0 will be considered fully signed off only after device-side verification is completed externally.
+
+---
+
+## M1 — Smart Local Progression Engine
+
+**Status:** Planned
+
+Target capability:
+- Analyze recent local workout performance.
+- Recommend weight increases when upper rep targets are consistently achieved.
+- Recommend maintaining load when performance remains inside the target range.
+- Detect missed targets.
+- Detect repeated performance decline.
+- Surface deterministic, local-only recommendations.
+
+---
+
+## M2 — AI Coach Handoff
+
+**Status:** Planned
+
+Target capability:
+- Build coaching context from local data.
+- Generate structured ChatGPT prompts.
+- Copy/share prompts.
+- No mandatory API key or backend.
+
+---
+
+## M3 — Plan Generation Wizard
+
+**Status:** Planned
+
+Target capability:
+- Multi-step questionnaire.
+- Persist draft locally.
+- Generate structured plan-generation prompt.
+- Reuse the existing plan JSON import/validation pipeline.
+
+---
+
+## M4 — Existing Plan Assessment
+
+**Status:** Planned
+
+Target capability:
+- Accept an existing plan as text/JSON first.
+- Generate an assessment prompt.
+- Support improved-plan return through the existing import pipeline.
+- Add document formats only after reliable extraction is established.
+
+---
+
+## M5 — Advanced Progress Analytics
+
+**Status:** Planned
+
+Target capability:
+- Exercise progression.
+- Weight/rep/volume trends.
+- Weekly consistency.
+- Training streaks.
+- Personal records.
+- Muscle-group/weekly volume where supported.
+- Charts and progress summaries.
+
+---
+
+## M6 — Advanced Program Management
+
+**Status:** Planned
+
+Target capability:
+- Program state.
+- Week progression.
+- Phase progression.
+- Deload/rest handling.
+- Repeating cycles.
+- Phase transitions.
+- Program completion.
+
+---
+
+## M7 — Plan Editing and Lifecycle Refinement
+
+**Status:** Planned
+
+Target capability:
+- Edit exercises.
+- Edit sets/rep ranges.
+- Reorder and replace exercises.
+- Safely persist plan changes.
+- Protect historical workout records.
+- Prepare for plan versioning/lifecycle features.
+
+---
+
+## Deferred — Not in Current Roadmap
+
+- Backup
+- Export/restore
+- Cloud sync
+- Traditional backend
+- Mandatory paid AI API
