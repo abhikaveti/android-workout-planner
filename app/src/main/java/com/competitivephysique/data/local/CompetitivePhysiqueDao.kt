@@ -44,6 +44,9 @@ interface CompetitivePhysiqueDao {
     @Query("SELECT * FROM exercise_definitions WHERE workoutId = :workoutId ORDER BY sequenceOrder")
     suspend fun getExercisesForWorkout(workoutId: String): List<ExerciseDefinitionEntity>
 
+    @Query("SELECT * FROM exercise_definitions WHERE id = :id LIMIT 1")
+    suspend fun getExercise(id: String): ExerciseDefinitionEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExercises(exercises: List<ExerciseDefinitionEntity>)
 
@@ -76,6 +79,12 @@ interface CompetitivePhysiqueDao {
 
     @Query("SELECT * FROM set_logs WHERE workoutSessionId = :sessionId ORDER BY exerciseDefinitionId, setNumber")
     suspend fun getSetLogs(sessionId: String): List<SetLogEntity>
+
+    @Query("SELECT s.* FROM set_logs s INNER JOIN workout_sessions ws ON ws.id = s.workoutSessionId WHERE ws.planId = :planId AND ws.status = 'COMPLETED' AND s.exerciseDefinitionId = :exerciseId ORDER BY ws.completedAt DESC, s.setNumber ASC")
+    suspend fun getCompletedExerciseSets(planId: String, exerciseId: String): List<SetLogEntity>
+
+    @Query("SELECT * FROM set_logs WHERE workoutSessionId = :sessionId AND exerciseDefinitionId = :exerciseId ORDER BY setNumber")
+    suspend fun getExerciseSets(sessionId: String, exerciseId: String): List<SetLogEntity>
 
     @Query("DELETE FROM exercise_definitions WHERE workoutId IN (SELECT id FROM workout_definitions WHERE phaseId IN (SELECT id FROM training_phases WHERE planId = :planId))")
     suspend fun deleteExercisesForPlan(planId: String)
