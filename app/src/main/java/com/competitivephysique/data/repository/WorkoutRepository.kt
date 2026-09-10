@@ -51,5 +51,7 @@ class WorkoutRepository(private val dao: CompetitivePhysiqueDao) {
     fun observeSets(sessionId: String): Flow<List<SetLogEntity>> = dao.observeSetLogs(sessionId)
     suspend fun logs(sessionId: String): List<SetLogEntity> = dao.getSetLogs(sessionId)
     suspend fun completed(planId: String): List<WorkoutSessionEntity> = dao.getCompletedSessions(planId)
+    suspend fun recentExerciseSets(planId: String, exerciseId: String): List<SetLogEntity> = dao.getCompletedExerciseSets(planId, exerciseId)
+    suspend fun exerciseSets(sessionId: String, exerciseId: String): List<SetLogEntity> = dao.getExerciseSets(sessionId, exerciseId)
     suspend fun complete(sessionId: String) = dao.completeSession(sessionId, System.currentTimeMillis())
 }
