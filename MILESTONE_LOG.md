@@ -37,15 +37,35 @@ The source baseline is suitable for feature development. M0 will be considered f
 
 ## M1 — Smart Local Progression Engine
 
-**Status:** Planned
+**Status:** IMPLEMENTED — BUILD/DEVICE VERIFICATION PENDING
 
-Target capability:
-- Analyze recent local workout performance.
-- Recommend weight increases when upper rep targets are consistently achieved.
-- Recommend maintaining load when performance remains inside the target range.
-- Detect missed targets.
-- Detect repeated performance decline.
-- Surface deterministic, local-only recommendations.
+### Implementation completed
+- Added `ProgressionRecommendation` sealed model.
+- Added `ProgressionEngine` with deterministic local rules.
+- Added `ExerciseProgressionInsight` result model.
+- Added DAO queries for completed exercise sets and current-session exercise sets.
+- Exposed recent exercise performance through `WorkoutRepository`.
+- Wired progression analysis into `WorkoutUiState`.
+- Workout loading derives recommendations from recent completed sessions.
+- Workout UI displays progression guidance per exercise when a recommendation exists.
+- No database schema migration was introduced.
+- No AI/API/backend dependency was introduced.
+
+### Rules implemented
+- Upper rep target reached → consider increasing weight.
+- Performance inside programmed range → maintain weight/build reps.
+- Minimum rep target missed → improve reps before progressing.
+- Repeated declining session totals → review recovery/fatigue/training load.
+
+### Verification limitation
+The development environment does not provide a Gradle/Android SDK/device execution path, so APK compilation and on-device UAT are not marked complete here.
+
+### Exit criteria status
+- ✅ Domain logic implemented
+- ✅ Repository/data access implemented
+- ✅ UI integration implemented
+- ✅ Local-only architecture preserved
+- ⏳ Automated/build/device verification pending
 
 ---
 
