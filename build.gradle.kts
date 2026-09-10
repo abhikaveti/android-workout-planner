@@ -1,3 +1,7 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:0ef9b97b429dab9d67263111002f0d1c867beee1634e74e54fb919aa6f8b77ce
-size 363
+plugins {
+    id("com.android.application") version "8.6.1" apply false
+    id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+    id("org.jetbrains.kotlin.kapt") version "2.0.21" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false
+}

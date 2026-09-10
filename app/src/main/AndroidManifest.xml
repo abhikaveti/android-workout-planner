@@ -1,3 +1,15 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:67c17ed7d7a2dec9d411e568b08c07c0602f0de8e8fce40a9877cbeef6df8775
-size 576
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="false"
+        android:label="Competitive Physique"
+        android:theme="@style/Theme.CompetitivePhysique">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

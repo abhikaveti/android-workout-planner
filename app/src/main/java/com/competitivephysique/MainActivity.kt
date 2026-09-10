@@ -1,3 +1,15 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:6960db4ee2064768be14724d6155d664f01adab0a08e01e37bd8daeece7fb704
-size 422
+package com.competitivephysique
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import com.competitivephysique.ui.CompetitivePhysiqueApp
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            CompetitivePhysiqueApp()
+        }
+    }
+}
