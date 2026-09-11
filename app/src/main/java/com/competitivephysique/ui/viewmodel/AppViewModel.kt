@@ -9,6 +9,7 @@ import com.competitivephysique.data.repository.SetValidationResult
 import com.competitivephysique.data.repository.SetValidator
 import com.competitivephysique.data.repository.WorkoutRepository
 import com.competitivephysique.domain.plan.*
+import com.competitivephysique.domain.coach.*
 import com.competitivephysique.domain.progression.ExerciseProgressionInsight
 import com.competitivephysique.domain.progression.ProgressionEngine
 import kotlinx.coroutines.flow.*
@@ -32,6 +33,12 @@ data class ImportUiState(
     val rawJson: String = "",
     val errors: List<String> = emptyList(),
     val preview: TrainingPlan? = null
+)
+
+data class CoachUiState(
+    val prompt: String = "",
+    val summary: String = "",
+    val message: String? = null
 )
 
 data class WorkoutUiState(
@@ -66,6 +73,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _workout = MutableStateFlow(WorkoutUiState())
     val workout = _workout.asStateFlow()
+
+    private val _coach = MutableStateFlow(CoachUiState())
+    val coach = _coach.asStateFlow()
 
     fun seedAndActivateSample() = viewModelScope.launch {
         val plan = SamplePlan.competitiveRebuild()
@@ -219,6 +229,76 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         workouts.complete(session.id)
         _workout.value = WorkoutUiState(message = "$completedName completed. Refreshing your next workout.")
         refreshProgramState()
+    }
+
+    fun generateCoachPrompt() = viewModelScope.launch {
+        val active = dao.getActivePlan()
+        if (active == null) {
+            _coach.value = CoachUiState(message = "Activate a training plan before generating coaching context.")
+            return@launch
+        }
+
+        val currentSession = workouts.current()?.takeIf { it.planId == active.id }
+        val currentWorkout = currentSession?.let { dao.getWorkout(it.workoutDefinitionId) }
+        val next = plans.nextWorkout()
+        val completedCount = dao.completedSessionCount(active.id)
+        val exerciseSource = when {
+            currentWorkout != null -> workouts.exercises(currentWorkout.id)
+            next != null -> workouts.exercises(next.id)
+            else -> emptyList()
+        }
+
+        val exercises = exerciseSource.map { exercise ->
+            val recentSets = workouts.recentExerciseSets(active.id, exercise.id)
+                .groupBy { it.workoutSessionId }
+                .toList()
+                .sortedByDescending { (_, logs) -> logs.maxOfOrNull { it.completedAt } ?: 0L }
+                .take(3)
+                .flatMap { (_, logs) -> logs.sortedBy { it.setNumber } }
+                .map { CoachSetPerformance(it.setNumber, it.weightKg, it.reps, it.rir) }
+
+            val history = workouts.recentExerciseSets(active.id, exercise.id)
+                .groupBy { it.workoutSessionId }
+                .toList()
+                .sortedByDescending { (_, logs) -> logs.maxOfOrNull { it.completedAt } ?: 0L }
+                .map { (_, logs) -> logs.sortedBy { it.setNumber } }
+            val guidance = ProgressionEngine.recommend(exercise, history).coachMessage()
+
+            CoachExercisePerformance(
+                name = exercise.name,
+                targetSets = exercise.targetSets,
+                minReps = exercise.minReps,
+                maxReps = exercise.maxReps,
+                recentSets = recentSets,
+                progressionGuidance = guidance
+            )
+        }
+
+        val context = CoachContext(
+            planName = active.name,
+            goal = active.goal,
+            currentWorkoutName = currentWorkout?.name,
+            nextWorkoutName = next?.name,
+            completedWorkoutCount = completedCount,
+            exercises = exercises
+        )
+        val prompt = CoachPromptBuilder.build(context)
+        _coach.value = CoachUiState(
+            prompt = prompt,
+            summary = "${active.name} • ${completedCount} completed workout(s) • ${exerciseSource.size} exercise(s) included"
+        )
+    }
+
+    fun dismissCoachMessage() {
+        _coach.value = _coach.value.copy(message = null)
+    }
+
+    private fun com.competitivephysique.domain.progression.ProgressionRecommendation.coachMessage(): String? = when (this) {
+        com.competitivephysique.domain.progression.ProgressionRecommendation.NoRecommendation -> null
+        is com.competitivephysique.domain.progression.ProgressionRecommendation.IncreaseWeight -> message
+        is com.competitivephysique.domain.progression.ProgressionRecommendation.MaintainWeight -> message
+        is com.competitivephysique.domain.progression.ProgressionRecommendation.ImproveReps -> message
+        is com.competitivephysique.domain.progression.ProgressionRecommendation.ReviewRecovery -> message
     }
 
     fun dismissWorkoutMessage() {
