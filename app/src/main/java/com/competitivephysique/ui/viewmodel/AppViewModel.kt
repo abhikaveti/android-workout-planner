@@ -9,6 +9,8 @@ import com.competitivephysique.data.repository.SetValidationResult
 import com.competitivephysique.data.repository.SetValidator
 import com.competitivephysique.data.repository.WorkoutRepository
 import com.competitivephysique.domain.plan.*
+import com.competitivephysique.domain.progression.ExerciseProgressionInsight
+import com.competitivephysique.domain.progression.ProgressionEngine
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -37,6 +39,7 @@ data class WorkoutUiState(
     val workoutName: String = "",
     val exercises: List<ExerciseDefinitionEntity> = emptyList(),
     val logs: List<SetLogEntity> = emptyList(),
+    val progression: List<ExerciseProgressionInsight> = emptyList(),
     val message: String? = null,
     val confirmCompletion: Boolean = false,
     val completionMessage: String? = null
@@ -149,11 +152,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun loadSession(session: WorkoutSessionEntity) {
         val definition = dao.getWorkout(session.workoutDefinitionId)
+        val exercises = workouts.exercises(session.workoutDefinitionId)
+        val progression = exercises.mapNotNull { exercise ->
+            val history = workouts.recentExerciseSets(session.planId, exercise.id)
+                .groupBy { it.workoutSessionId }
+                .toList()
+                .sortedByDescending { (_, logs) -> logs.maxOfOrNull { it.completedAt } ?: 0L }
+                .map { (_, logs) -> logs.sortedBy { it.setNumber } }
+            val recommendation = ProgressionEngine.recommend(exercise, history)
+            ExerciseProgressionInsight(exercise, recommendation).takeUnless {
+                it.recommendation is com.competitivephysique.domain.progression.ProgressionRecommendation.NoRecommendation
+            }
+        }
         _workout.value = WorkoutUiState(
             session = session,
             workoutName = definition?.name ?: "Workout",
-            exercises = workouts.exercises(session.workoutDefinitionId),
-            logs = dao.getSetLogs(session.id)
+            exercises = exercises,
+            logs = dao.getSetLogs(session.id),
+            progression = progression.orEmpty()
         )
     }
 
@@ -172,10 +188,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         workouts.logSet(session.id, exerciseId, setNumber, parsedWeight!!, parsedReps!!, parsedRir)
-        _workout.value = _workout.value.copy(
-            logs = dao.getSetLogs(session.id),
-            message = "Set saved locally."
-        )
+        loadSession(session)
+        _workout.value = _workout.value.copy(message = "Set saved locally.")
     }
 
     fun requestCompleteWorkout() = viewModelScope.launch {

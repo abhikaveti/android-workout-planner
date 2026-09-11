@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.competitivephysique.domain.progression.ProgressionRecommendation
 import com.competitivephysique.ui.viewmodel.*
 
 @Composable
@@ -58,6 +59,14 @@ fun WorkoutOverviewScreen(items: List<WorkoutOverviewItem>, onSelect: (String) -
     }
 }
 
+private fun ProgressionRecommendation.message(): String? = when (this) {
+    ProgressionRecommendation.NoRecommendation -> null
+    is ProgressionRecommendation.IncreaseWeight -> message
+    is ProgressionRecommendation.MaintainWeight -> message
+    is ProgressionRecommendation.ImproveReps -> message
+    is ProgressionRecommendation.ReviewRecovery -> message
+}
+
 @Composable
 fun WorkoutScreen(state: WorkoutUiState, onLog: (String, Int, String, String, String) -> Unit, onComplete: () -> Unit, onConfirmComplete: () -> Unit, onCancelComplete: () -> Unit, onDismiss: () -> Unit) {
     if (state.session == null) {
@@ -68,6 +77,14 @@ fun WorkoutScreen(state: WorkoutUiState, onLog: (String, Int, String, String, St
             item { Text(state.workoutName, style = MaterialTheme.typography.headlineMedium); Text("Session data is saved immediately on this device.") }
             state.exercises.forEach { exercise -> item { ElevatedCard { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(exercise.name, style = MaterialTheme.typography.titleLarge)
+                state.progression.firstOrNull { it.exercise.id == exercise.id }?.recommendation?.message()?.let { recommendation ->
+                    Card {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Progression guidance", style = MaterialTheme.typography.labelLarge)
+                            Text(recommendation)
+                        }
+                    }
+                }
                 repeat(exercise.targetSets) { index ->
                     val setNo = index + 1; val key = exercise.id + "-" + setNo
                     val saved = state.logs.firstOrNull { it.exerciseDefinitionId == exercise.id && it.setNumber == setNo }
@@ -101,4 +118,5 @@ fun ProgressScreen(history: List<HistoryItem>) {
 }
 
 @Composable
-fun CoachPlaceholder() { Box(Modifier.fillMaxSize().padding(20.dp)) { Text("ChatGPT handoff will generate prompts from your local workout context without an API.") } }
+fun CoachPlaceholder() { Box(Modifier.fillMaxSize().padding(20.dp)) { Text("ChatGPT handoff will generate prompts from your local workout context without an API.") }
+}
