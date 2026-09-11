@@ -22,6 +22,7 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
     val workout by vm.workout.collectAsState()
     val overview by vm.overview.collectAsState()
     val history by vm.history.collectAsState()
+    val coach by vm.coach.collectAsState()
 
     LaunchedEffect(active?.id) { vm.refreshProgramState() }
 
@@ -51,7 +52,7 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
                         }
                     }
                     AppTab.PROGRESS -> ProgressScreen(history)
-                    AppTab.COACH -> CoachPlaceholder()
+                    AppTab.COACH -> CoachScreen(coach, vm::generateCoachPrompt, vm::dismissCoachMessage)
                 }
             }
         }
