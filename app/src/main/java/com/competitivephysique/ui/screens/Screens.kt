@@ -6,6 +6,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.competitivephysique.domain.progression.ProgressionRecommendation
@@ -118,5 +120,46 @@ fun ProgressScreen(history: List<HistoryItem>) {
 }
 
 @Composable
-fun CoachPlaceholder() { Box(Modifier.fillMaxSize().padding(20.dp)) { Text("ChatGPT handoff will generate prompts from your local workout context without an API.") }
+fun CoachScreen(state: CoachUiState, onGenerate: () -> Unit, onDismiss: () -> Unit) {
+    val clipboard = LocalClipboardManager.current
+    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            Text("AI Coach", style = MaterialTheme.typography.headlineMedium)
+            Text("Generate a structured coaching prompt from your local training data. No API key or backend is required.")
+        }
+        item {
+            ElevatedCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Your training context", style = MaterialTheme.typography.titleMedium)
+                    Text(if (state.summary.isBlank()) "Generate a prompt to collect your active plan, workout performance and local progression guidance." else state.summary)
+                    Button(onClick = onGenerate, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (state.prompt.isBlank()) "Generate Coaching Prompt" else "Refresh Coaching Prompt")
+                    }
+                }
+            }
+        }
+        if (state.prompt.isNotBlank()) {
+            item {
+                ElevatedCard {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Ready for ChatGPT", style = MaterialTheme.typography.titleMedium)
+                        Text("Copy the prompt below and paste it into ChatGPT for coaching feedback.")
+                        OutlinedButton(
+                            onClick = { clipboard.setText(AnnotatedString(state.prompt)) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Copy Prompt") }
+                        Text(state.prompt, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    }
+    state.message?.let { message ->
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+            title = { Text("AI Coach") },
+            text = { Text(message) }
+        )
+    }
 }
