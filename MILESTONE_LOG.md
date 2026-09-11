@@ -71,13 +71,55 @@ The development environment does not provide a Gradle/Android SDK/device executi
 
 ## M2 — AI Coach Handoff
 
-**Status:** Planned
+**Status:** IMPLEMENTED — BUILD/DEVICE VERIFICATION PENDING
 
-Target capability:
-- Build coaching context from local data.
-- Generate structured ChatGPT prompts.
-- Copy/share prompts.
-- No mandatory API key or backend.
+### Implementation completed
+- Added CoachContext and exercise/set performance models.
+- Added CoachPromptBuilder as a dedicated domain component.
+- Built coaching context entirely from local Room-backed training data.
+- Includes active plan, goal, current workout, next workout, completed workout count, recent exercise sets and local progression guidance.
+- Added CoachUiState and ViewModel orchestration.
+- Added an AI Coach screen.
+- Added prompt generation and refresh.
+- Added clipboard copy support.
+- Wired the Coach navigation tab to the implemented feature.
+- Added focused unit coverage for structured prompt generation.
+- No API key, backend or cloud service was introduced.
+
+### User flow
+1. Open the Coach tab.
+2. Generate coaching context from local training data.
+3. Review the generated structured prompt.
+4. Copy the prompt.
+5. Paste it into ChatGPT.
+
+### Architecture
+
+```text
+Local Room Data
+   +
+Active Plan
+   +
+Workout History
+   +
+Local Progression Guidance
+        ↓
+Coach Context
+        ↓
+CoachPromptBuilder
+        ↓
+Copy
+        ↓
+User → ChatGPT
+```
+
+### Exit criteria status
+- ✅ Local coaching context implemented
+- ✅ Structured prompt implemented
+- ✅ Coach UI implemented
+- ✅ Copy action implemented
+- ✅ No mandatory API/backend
+- ⏳ Build/device verification delegated to external environment
 
 ---
 
