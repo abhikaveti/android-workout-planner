@@ -225,7 +225,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun selectWorkout(workoutId: String) = viewModelScope.launch {
         val active = activePlan.value ?: return@launch
         val current = workouts.current()
-        val session = if (current != null && current.planId == active.id) {
+        val session = if (
+            current != null &&
+            current.planId == active.id &&
+            current.workoutDefinitionId == workoutId
+        ) {
             current
         } else {
             workouts.start(active.id, workoutId)
