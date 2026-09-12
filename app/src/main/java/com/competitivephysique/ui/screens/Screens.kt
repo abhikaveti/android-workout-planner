@@ -163,3 +163,33 @@ fun CoachScreen(state: CoachUiState, onGenerate: () -> Unit, onDismiss: () -> Un
         )
     }
 }
+
+
+@Composable
+fun PlanGenerationScreen(state: PlanGenerationUiState, onUpdate: (PlanGenerationProfile) -> Unit, onGenerate: () -> Unit) {
+    val clipboard = LocalClipboardManager.current
+    val p = state.profile
+    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { Text("Build Your Plan", style = MaterialTheme.typography.headlineMedium); Text("Answer the profile questions, generate a prompt, then use ChatGPT and import the returned JSON.") }
+        item { OutlinedTextField(p.goal, { onUpdate(p.copy(goal = it)) }, Modifier.fillMaxWidth(), label = { Text("Goal") }) }
+        item { OutlinedTextField(p.experience, { onUpdate(p.copy(experience = it)) }, Modifier.fillMaxWidth(), label = { Text("Experience") }) }
+        item { OutlinedTextField(p.trainingDays.toString(), { onUpdate(p.copy(trainingDays = it.toIntOrNull()?.coerceIn(1, 7) ?: p.trainingDays)) }, Modifier.fillMaxWidth(), label = { Text("Training days per week") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)) }
+        item { OutlinedTextField(p.gymEquipment, { onUpdate(p.copy(gymEquipment = it)) }, Modifier.fillMaxWidth(), label = { Text("Gym equipment") }) }
+        item { OutlinedTextField(p.homeEquipment, { onUpdate(p.copy(homeEquipment = it)) }, Modifier.fillMaxWidth(), label = { Text("Home equipment") }) }
+        item { OutlinedTextField(p.weakAreas, { onUpdate(p.copy(weakAreas = it)) }, Modifier.fillMaxWidth(), label = { Text("Weak areas") }) }
+        item { OutlinedTextField(p.restrictions, { onUpdate(p.copy(restrictions = it)) }, Modifier.fillMaxWidth(), label = { Text("Restrictions / exercises to avoid") }) }
+        item { OutlinedTextField(p.preferences, { onUpdate(p.copy(preferences = it)) }, Modifier.fillMaxWidth(), label = { Text("Training preferences") }) }
+        item { OutlinedTextField(p.sessionDurationMinutes.toString(), { onUpdate(p.copy(sessionDurationMinutes = it.toIntOrNull()?.coerceIn(20, 240) ?: p.sessionDurationMinutes)) }, Modifier.fillMaxWidth(), label = { Text("Session duration (minutes)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)) }
+        item { OutlinedTextField(p.physiqueObjective, { onUpdate(p.copy(physiqueObjective = it)) }, Modifier.fillMaxWidth(), label = { Text("Physique objective") }) }
+        item { Button(onClick = onGenerate, modifier = Modifier.fillMaxWidth()) { Text("Generate Plan Prompt") } }
+        if (state.prompt.isNotBlank()) item {
+            ElevatedCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Ready for ChatGPT", style = MaterialTheme.typography.titleMedium)
+                    OutlinedButton(onClick = { clipboard.setText(AnnotatedString(state.prompt)) }, modifier = Modifier.fillMaxWidth()) { Text("Copy Prompt") }
+                    Text(state.prompt, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+}
