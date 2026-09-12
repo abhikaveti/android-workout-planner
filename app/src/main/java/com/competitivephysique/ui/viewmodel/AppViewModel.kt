@@ -10,6 +10,7 @@ import com.competitivephysique.data.repository.SetValidator
 import com.competitivephysique.data.repository.WorkoutRepository
 import com.competitivephysique.domain.plan.*
 import com.competitivephysique.domain.coach.*
+import com.competitivephysique.domain.generation.*
 import com.competitivephysique.domain.progression.ExerciseProgressionInsight
 import com.competitivephysique.domain.progression.ProgressionEngine
 import kotlinx.coroutines.flow.*
@@ -33,6 +34,11 @@ data class ImportUiState(
     val rawJson: String = "",
     val errors: List<String> = emptyList(),
     val preview: TrainingPlan? = null
+)
+
+data class PlanGenerationUiState(
+    val profile: PlanGenerationProfile = PlanGenerationProfile(),
+    val prompt: String = ""
 )
 
 data class CoachUiState(
@@ -76,6 +82,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _coach = MutableStateFlow(CoachUiState())
     val coach = _coach.asStateFlow()
+
+    private val _generation = MutableStateFlow(PlanGenerationUiState())
+    val generation = _generation.asStateFlow()
 
     fun seedAndActivateSample() = viewModelScope.launch {
         val plan = SamplePlan.competitiveRebuild()
@@ -229,6 +238,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         workouts.complete(session.id)
         _workout.value = WorkoutUiState(message = "$completedName completed. Refreshing your next workout.")
         refreshProgramState()
+    }
+
+    fun updateGenerationProfile(profile: PlanGenerationProfile) {
+        _generation.value = PlanGenerationUiState(profile = profile, prompt = "")
+    }
+
+    fun generatePlanPrompt() {
+        val profile = _generation.value.profile
+        _generation.value = _generation.value.copy(prompt = PlanGenerationPromptBuilder.build(profile))
     }
 
     fun generateCoachPrompt() = viewModelScope.launch {
