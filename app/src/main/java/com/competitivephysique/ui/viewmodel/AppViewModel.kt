@@ -54,7 +54,8 @@ data class PlanAssessmentUiState(
 
 data class PlanGenerationUiState(
     val profile: PlanGenerationProfile = PlanGenerationProfile(),
-    val prompt: String = ""
+    val prompt: String = "",
+    val errors: Map<String, String> = emptyMap()
 )
 
 data class CoachUiState(
@@ -308,7 +309,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun generatePlanPrompt() {
         val profile = _generation.value.profile
-        _generation.value = _generation.value.copy(prompt = PlanGenerationPromptBuilder.build(profile))
+        val errors = buildMap {
+            if (profile.goal.isBlank()) put("goal", "Goal is required")
+            if (profile.experience !in listOf("Beginner", "Intermediate", "Advanced", "Professional")) put("experience", "Select your experience level")
+            val days = profile.trainingDays.toIntOrNull()
+            if (days == null || days !in 1..7) put("trainingDays", "Enter a value from 1 to 7")
+            val duration = profile.sessionDurationMinutes.toIntOrNull()
+            if (duration == null || duration !in 20..240) put("duration", "Enter a value from 20 to 240 minutes")
+        }
+        if (errors.isNotEmpty()) {
+            _generation.value = _generation.value.copy(prompt = "", errors = errors)
+            return
+        }
+        _generation.value = _generation.value.copy(prompt = PlanGenerationPromptBuilder.build(profile), errors = emptyMap())
     }
 
     fun generateCoachPrompt() = viewModelScope.launch {

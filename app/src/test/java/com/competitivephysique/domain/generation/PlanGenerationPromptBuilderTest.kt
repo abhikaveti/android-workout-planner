@@ -4,10 +4,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlanGenerationPromptBuilderTest {
-    @Test fun includesProfileAndImportInstruction() {
-        val prompt = PlanGenerationPromptBuilder.build(PlanGenerationProfile(goal = "Competitive physique", trainingDays = 5))
-        assertTrue(prompt.contains("Competitive physique"))
-        assertTrue(prompt.contains("5"))
-        assertTrue(prompt.contains("Return ONLY valid JSON"))
+    @Test
+    fun promptIncludesSchemaRequirements() {
+        val profile = PlanGenerationProfile(
+            goal = "Muscle building",
+            experience = "Intermediate",
+            trainingDays = "4",
+            sessionDurationMinutes = "75"
+        )
+        val prompt = PlanGenerationPromptBuilder.build(profile)
+        assertTrue(prompt.contains("SCHEMA REQUIREMENTS"))
+        assertTrue(prompt.contains("Every phase"))
+        assertTrue(prompt.contains("Every workout"))
+        assertTrue(prompt.contains("Every exercise"))
     }
 }

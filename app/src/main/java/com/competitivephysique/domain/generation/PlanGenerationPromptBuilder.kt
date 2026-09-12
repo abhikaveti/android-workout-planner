@@ -18,6 +18,12 @@ object PlanGenerationPromptBuilder {
         appendLine("Physique objective: ${profile.physiqueObjective.ifBlank { "Not specified" }}")
         appendLine()
         appendLine("Use evidence-informed exercise selection, realistic volume, progressive overload, sensible fatigue management and clear week/phase organization.")
-        appendLine("Ensure all required fields are populated and internally consistent so the JSON can be validated and imported directly.")
+        appendLine("SCHEMA REQUIREMENTS")
+        appendLine("Return one complete root plan object with every required field populated.")
+        appendLine("Every phase must include its identifier, name, start/end week and sequence order.")
+        appendLine("Every workout must include its identifier, name and sequence/day order.")
+        appendLine("Every exercise must include its identifier, name, target sets and min/max repetition range.")
+        appendLine("Use valid JSON strings for identifiers and names, integers for counts/weeks/reps, and do not omit required arrays.")
+        appendLine("Ensure all references and ordering are internally consistent so the JSON can be validated and imported directly.")
     }
 }
