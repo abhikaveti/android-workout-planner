@@ -21,7 +21,11 @@ object SetValidator {
 class WorkoutRepository(private val dao: CompetitivePhysiqueDao) {
     suspend fun start(planId: String, workoutId: String): WorkoutSessionEntity {
         val current = dao.getCurrentSession()
-        if (current != null && current.planId == planId) return current
+        if (
+            current != null &&
+            current.planId == planId &&
+            current.workoutDefinitionId == workoutId
+        ) return current
         val session = WorkoutSessionEntity(UUID.randomUUID().toString(), planId, workoutId, System.currentTimeMillis())
         dao.upsertWorkoutSession(session)
         return session
