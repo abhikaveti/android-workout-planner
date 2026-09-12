@@ -13,6 +13,7 @@ import com.competitivephysique.domain.coach.*
 import com.competitivephysique.domain.generation.*
 import com.competitivephysique.domain.assessment.*
 import com.competitivephysique.domain.analytics.*
+import com.competitivephysique.domain.program.*
 import com.competitivephysique.domain.progression.ExerciseProgressionInsight
 import com.competitivephysique.domain.progression.ProgressionEngine
 import kotlinx.coroutines.flow.*
@@ -75,6 +76,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _nextWorkout = MutableStateFlow<WorkoutDefinitionEntity?>(null)
     val nextWorkout = _nextWorkout.asStateFlow()
 
+    private val _programState = MutableStateFlow(ProgramState(1, null, null, null, null, 0, false))
+    val programState = _programState.asStateFlow()
+
     private val _overview = MutableStateFlow<List<WorkoutOverviewItem>>(emptyList())
     val overview = _overview.asStateFlow()
 
@@ -114,6 +118,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (active == null) {
             _overview.value = emptyList()
             _history.value = emptyList()
+            _programState.value = ProgramState(1, null, null, null, null, 0, false)
             return@launch
         }
 
@@ -122,7 +127,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val current = dao.getCurrentSession()?.takeIf { it.planId == active.id }
         val nextId = _nextWorkout.value?.id
 
-        val definitions = dao.getPhases(active.id).flatMap { dao.getWorkoutsForPhase(it.id) }
+        val phases = dao.getPhases(active.id)
+        val definitions = phases.flatMap { dao.getWorkoutsForPhase(it.id) }
+        _programState.value = ProgramStateEngine.resolve(phases, definitions, completed.size, _nextWorkout.value)
         _overview.value = definitions.mapIndexed { index, definition ->
             val status = when {
                 definition.id in completedIds -> WorkoutDisplayStatus.COMPLETED

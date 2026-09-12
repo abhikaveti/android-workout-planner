@@ -242,3 +242,18 @@ Target capability:
 - Added performance records to the Progress dashboard.
 - Added focused analytics test.
 - Analytics are calculated locally from workout history without schema changes.
+
+
+---
+
+## M6 — Advanced Program Management
+
+**Status:** IMPLEMENTED
+
+- Added ProgramState and ProgramStateEngine.
+- Derives current week from completed workouts and program cycle size.
+- Resolves current phase from configured week ranges.
+- Tracks phase week boundaries and program-cycle completion.
+- Wires program state into the dashboard.
+- Added focused week/phase resolution test.
+- Uses existing phase/workout schema without database migration.
