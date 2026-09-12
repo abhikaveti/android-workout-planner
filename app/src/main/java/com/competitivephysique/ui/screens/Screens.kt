@@ -79,7 +79,7 @@ private fun ProgressionRecommendation.message(): String? = when (this) {
 }
 
 @Composable
-fun WorkoutScreen(state: WorkoutUiState, onLog: (String, Int, String, String, String) -> Unit, onComplete: () -> Unit, onConfirmComplete: () -> Unit, onCancelComplete: () -> Unit, onDismiss: () -> Unit) {
+fun WorkoutScreen(state: WorkoutUiState, onLog: (String, Int, String, String, String) -> Unit, onComplete: () -> Unit, onConfirmComplete: () -> Unit, onCancelComplete: () -> Unit, onDismiss: () -> Unit, onAssessResults: () -> Unit) {
     if (state.session == null) {
         Column(Modifier.fillMaxSize().padding(20.dp)) { Text("Workout", style = MaterialTheme.typography.headlineMedium); Text("Select a workout card to start or resume training.") }
     } else {
@@ -117,6 +117,13 @@ fun WorkoutScreen(state: WorkoutUiState, onLog: (String, Int, String, String, St
     }
     if (state.confirmCompletion) AlertDialog(onDismissRequest=onCancelComplete,title={Text("Complete workout?")},text={Text(state.completionMessage ?: "")},dismissButton={TextButton(onClick=onCancelComplete){Text("Continue Workout")}},confirmButton={TextButton(onClick=onConfirmComplete){Text("Complete Anyway")}})
     state.message?.let { message -> AlertDialog(onDismissRequest=onDismiss,confirmButton={TextButton(onClick=onDismiss){Text("OK")}},title={Text("Workout")},text={Text(message)}) }
+    if (state.programCompleted) AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Program Complete 🎉") },
+        text = { Text("All planned workouts are complete. Great work! Review your results and assess the outcome of this training cycle.") },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Later") } },
+        confirmButton = { Button(onClick = onAssessResults) { Text("Assess My Results") } }
+    )
 }
 
 @Composable
