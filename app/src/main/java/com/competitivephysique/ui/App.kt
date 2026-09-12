@@ -36,14 +36,14 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
             topBar = { CenterAlignedTopAppBar(title = { Text("Competitive Physique") }) },
             bottomBar = {
                 NavigationBar {
-                    NavigationBarItem(tab == AppTab.HOME, { tab = AppTab.HOME; executing = false }, { Icon(Icons.Default.Home, null) }, { Text("Home") })
-                    NavigationBarItem(tab == AppTab.IMPORT, { tab = AppTab.IMPORT; executing = false }, { Icon(Icons.Default.UploadFile, null) }, { Text("Plan") })
-                    NavigationBarItem(tab == AppTab.GENERATE, { tab = AppTab.GENERATE; executing = false }, { Icon(Icons.Default.AutoAwesome, null) }, { Text("Generate") })
-                    NavigationBarItem(tab == AppTab.ASSESS, { tab = AppTab.ASSESS; executing = false }, { Icon(Icons.Default.Search, null) }, { Text("Assess") })
-                    NavigationBarItem(tab == AppTab.EDIT, { tab = AppTab.EDIT; executing = false }, { Icon(Icons.Default.Edit, null) }, { Text("Edit") })
-                    NavigationBarItem(tab == AppTab.WORKOUT, { tab = AppTab.WORKOUT; executing = false; vm.refreshProgramState() }, { Icon(Icons.Default.FitnessCenter, null) }, { Text("Workout") })
-                    NavigationBarItem(tab == AppTab.PROGRESS, { tab = AppTab.PROGRESS; executing = false; vm.refreshProgramState() }, { Icon(Icons.Default.BarChart, null) }, { Text("Progress") })
-                    NavigationBarItem(tab == AppTab.COACH, { tab = AppTab.COACH; executing = false }, { Icon(Icons.Default.Chat, null) }, { Text("Coach") })
+                    NavigationBarItem(selected = tab == AppTab.HOME, onClick = { tab = AppTab.HOME; executing = false }, icon = { Icon(Icons.Default.Home, "Home") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.IMPORT, onClick = { tab = AppTab.IMPORT; executing = false }, icon = { Icon(Icons.Default.UploadFile, "Plan") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.GENERATE, onClick = { tab = AppTab.GENERATE; executing = false }, icon = { Icon(Icons.Default.AutoAwesome, "Generate") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.ASSESS, onClick = { tab = AppTab.ASSESS; executing = false }, icon = { Icon(Icons.Default.Search, "Assess") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.EDIT, onClick = { tab = AppTab.EDIT; executing = false }, icon = { Icon(Icons.Default.Edit, "Edit") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.WORKOUT, onClick = { tab = AppTab.WORKOUT; executing = false; vm.refreshProgramState() }, icon = { Icon(Icons.Default.FitnessCenter, "Workout") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.PROGRESS, onClick = { tab = AppTab.PROGRESS; executing = false; vm.refreshProgramState() }, icon = { Icon(Icons.Default.BarChart, "Progress") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.COACH, onClick = { tab = AppTab.COACH; executing = false }, icon = { Icon(Icons.Default.Chat, "Coach") }, alwaysShowLabel = false)
                 }
             }
         ) { padding ->
