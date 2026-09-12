@@ -193,3 +193,24 @@ fun PlanGenerationScreen(state: PlanGenerationUiState, onUpdate: (PlanGeneration
         }
     }
 }
+
+
+@Composable
+fun PlanAssessmentScreen(state: PlanAssessmentUiState, onUpdate: (PlanAssessmentRequest) -> Unit, onGenerate: () -> Unit) {
+    val clipboard = LocalClipboardManager.current
+    val r = state.request
+    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { Text("Assess Existing Plan", style = MaterialTheme.typography.headlineMedium); Text("Paste an existing plan and generate a structured assessment request for ChatGPT.") }
+        item { OutlinedTextField(r.planContent, { onUpdate(r.copy(planContent = it)) }, Modifier.fillMaxWidth().height(220.dp), label = { Text("Existing plan (text or JSON)") }, minLines = 8) }
+        item { OutlinedTextField(r.userGoal, { onUpdate(r.copy(userGoal = it)) }, Modifier.fillMaxWidth(), label = { Text("Your goal") }) }
+        item { OutlinedTextField(r.weakAreas, { onUpdate(r.copy(weakAreas = it)) }, Modifier.fillMaxWidth(), label = { Text("Weak areas") }) }
+        item { OutlinedTextField(r.availableEquipment, { onUpdate(r.copy(availableEquipment = it)) }, Modifier.fillMaxWidth(), label = { Text("Available equipment") }) }
+        item { OutlinedTextField(r.recentPerformance, { onUpdate(r.copy(recentPerformance = it)) }, Modifier.fillMaxWidth(), label = { Text("Recent performance notes") }) }
+        item { Button(onClick = onGenerate, enabled = r.planContent.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Generate Assessment Prompt") } }
+        if (state.prompt.isNotBlank()) item { ElevatedCard { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Assessment Prompt", style = MaterialTheme.typography.titleMedium)
+            OutlinedButton(onClick = { clipboard.setText(AnnotatedString(state.prompt)) }, modifier = Modifier.fillMaxWidth()) { Text("Copy Prompt") }
+            Text(state.prompt, style = MaterialTheme.typography.bodySmall)
+        } } }
+    }
+}

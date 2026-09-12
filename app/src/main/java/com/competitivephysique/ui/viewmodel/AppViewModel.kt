@@ -11,6 +11,7 @@ import com.competitivephysique.data.repository.WorkoutRepository
 import com.competitivephysique.domain.plan.*
 import com.competitivephysique.domain.coach.*
 import com.competitivephysique.domain.generation.*
+import com.competitivephysique.domain.assessment.*
 import com.competitivephysique.domain.progression.ExerciseProgressionInsight
 import com.competitivephysique.domain.progression.ProgressionEngine
 import kotlinx.coroutines.flow.*
@@ -34,6 +35,11 @@ data class ImportUiState(
     val rawJson: String = "",
     val errors: List<String> = emptyList(),
     val preview: TrainingPlan? = null
+)
+
+data class PlanAssessmentUiState(
+    val request: PlanAssessmentRequest = PlanAssessmentRequest(),
+    val prompt: String = ""
 )
 
 data class PlanGenerationUiState(
@@ -85,6 +91,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _generation = MutableStateFlow(PlanGenerationUiState())
     val generation = _generation.asStateFlow()
+
+    private val _assessment = MutableStateFlow(PlanAssessmentUiState())
+    val assessment = _assessment.asStateFlow()
 
     fun seedAndActivateSample() = viewModelScope.launch {
         val plan = SamplePlan.competitiveRebuild()
@@ -238,6 +247,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         workouts.complete(session.id)
         _workout.value = WorkoutUiState(message = "$completedName completed. Refreshing your next workout.")
         refreshProgramState()
+    }
+
+    fun updateAssessmentRequest(request: PlanAssessmentRequest) {
+        _assessment.value = PlanAssessmentUiState(request = request, prompt = "")
+    }
+
+    fun generateAssessmentPrompt() {
+        val request = _assessment.value.request
+        _assessment.value = _assessment.value.copy(prompt = PlanAssessmentPromptBuilder.build(request))
     }
 
     fun updateGenerationProfile(profile: PlanGenerationProfile) {
