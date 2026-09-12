@@ -12,6 +12,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.competitivephysique.domain.progression.ProgressionRecommendation
+import com.competitivephysique.domain.generation.PlanGenerationProfile
 import com.competitivephysique.ui.viewmodel.*
 
 @Composable
@@ -45,7 +46,7 @@ fun PlanImportScreen(vm: AppViewModel) {
         item { Text("Import Training Plan", style = MaterialTheme.typography.headlineMedium); Text("Paste the structured JSON exported from ChatGPT. The app validates it before saving anything.") }
         item { OutlinedTextField(value = state.rawJson, onValueChange = vm::updateImportJson, modifier = Modifier.fillMaxWidth().height(280.dp), label = { Text("Plan JSON") }, minLines = 12) }
         item { Button(onClick = vm::validateImport, enabled = state.rawJson.isNotBlank()) { Text("Validate Plan") } }
-        if (state.errors.isNotEmpty()) item { Card { Column(Modifier.padding(12.dp)) { Text("Validation issues", style = MaterialTheme.typography.titleMedium); state.errors.forEach { Text("• " + it) } } } }
+        if (state.errors.isNotEmpty()) item { val clipboard = LocalClipboardManager.current; Card { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("Validation issues", style = MaterialTheme.typography.titleMedium); state.errors.forEach { Text("• " + it) }; OutlinedButton(onClick = { clipboard.setText(AnnotatedString("The training plan failed validation. Please correct these issues and return the complete corrected JSON only:\n\n" + state.errors.mapIndexed { index, error -> "${index + 1}. $error" }.joinToString("\n"))) }) { Text("Copy Issues for ChatGPT") } } } }
         state.preview?.let { plan -> item { ElevatedCard { Column(Modifier.padding(16.dp)) { Text("Plan Ready", style = MaterialTheme.typography.titleLarge); Text(plan.name); Text("Goal: " + plan.goal); Button(onClick = vm::saveImportedPlan) { Text("Save & Activate Plan") } } } } }
     }
 }
