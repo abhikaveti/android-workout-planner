@@ -21,12 +21,36 @@ object ProgramStateEngine {
         nextWorkout: WorkoutDefinitionEntity?
     ): ProgramState {
         val ordered = phases.sortedBy { it.sequenceOrder }
-        val totalWeeks = ordered.maxOfOrNull { it.endWeek } ?: 1
-        val workoutsPerCycle = workouts.size.coerceAtLeast(1)
-        val currentWeek = (completedWorkouts / workoutsPerCycle + 1).coerceAtMost(totalWeeks)
+        if (ordered.isEmpty()) return ProgramState(1, null, null, null, null, completedWorkouts, true)
+
+        val totalWeeks = ordered.maxOf { it.endWeek }
+        val weeklySchedule = buildList {
+            for (week in 1..totalWeeks) {
+                val phase = ordered.firstOrNull { week in it.startWeek..it.endWeek } ?: continue
+                addAll(workouts.filter { it.phaseId == phase.id }.sortedBy { it.sequenceOrder })
+            }
+        }
+
+        val complete = completedWorkouts >= weeklySchedule.size
+        val currentWeek = if (complete) totalWeeks else {
+            var consumed = 0
+            var resolved = 1
+            for (week in 1..totalWeeks) {
+                val phase = ordered.firstOrNull { week in it.startWeek..it.endWeek } ?: continue
+                val count = workouts.count { it.phaseId == phase.id }
+                if (completedWorkouts < consumed + count) {
+                    resolved = week
+                    break
+                }
+                consumed += count
+                resolved = week.coerceAtMost(totalWeeks)
+            }
+            resolved
+        }
+
         val phase = ordered.firstOrNull { currentWeek in it.startWeek..it.endWeek }
             ?: ordered.lastOrNull()
-        val complete = completedWorkouts >= workoutsPerCycle * totalWeeks
+
         return ProgramState(
             currentWeek = currentWeek,
             phaseName = phase?.name,

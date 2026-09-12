@@ -38,10 +38,18 @@ class PlanRepository(private val dao: CompetitivePhysiqueDao) {
 
     suspend fun nextWorkout(): WorkoutDefinitionEntity? {
         val active = dao.getActivePlan() ?: return null
-        val sequence = dao.getPhases(active.id).flatMap { dao.getWorkoutsForPhase(it.id) }
-        if (sequence.isEmpty()) return null
-        val last = dao.getLastCompletedSession(active.id)?.workoutDefinitionId
-        val index = sequence.indexOfFirst { it.id == last }
-        return if (index < 0) sequence.first() else sequence[(index + 1) % sequence.size]
+        val phases = dao.getPhases(active.id)
+        if (phases.isEmpty()) return null
+
+        val weeklySchedule = buildList {
+            for (week in 1..(phases.maxOf { it.endWeek })) {
+                val phase = phases.firstOrNull { week in it.startWeek..it.endWeek } ?: continue
+                addAll(dao.getWorkoutsForPhase(phase.id))
+            }
+        }
+        if (weeklySchedule.isEmpty()) return null
+
+        val completed = dao.completedSessionCount(active.id)
+        return weeklySchedule.getOrNull(completed)
     }
 }

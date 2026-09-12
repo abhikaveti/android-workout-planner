@@ -72,7 +72,8 @@ data class WorkoutUiState(
     val progression: List<ExerciseProgressionInsight> = emptyList(),
     val message: String? = null,
     val confirmCompletion: Boolean = false,
-    val completionMessage: String? = null
+    val completionMessage: String? = null,
+    val programCompleted: Boolean = false
 )
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -269,8 +270,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val session = _workout.value.session ?: return
         val completedName = _workout.value.workoutName
         workouts.complete(session.id)
-        _workout.value = WorkoutUiState(message = "$completedName completed. Refreshing your next workout.")
         refreshProgramState()
+        val active = dao.getActivePlan()
+        val completedCount = active?.let { dao.completedSessionCount(it.id) } ?: 0
+        val phases = active?.let { dao.getPhases(it.id) }.orEmpty()
+        val definitions = phases.flatMap { dao.getWorkoutsForPhase(it.id) }
+        val state = ProgramStateEngine.resolve(phases, definitions, completedCount, plans.nextWorkout())
+        _workout.value = WorkoutUiState(
+            message = if (state.programComplete) null else "$completedName completed. Week ${state.currentWeek} is now active.",
+            programCompleted = state.programComplete
+        )
     }
 
     fun updateEditorJson(value: String) {
@@ -396,5 +405,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissWorkoutMessage() {
         _workout.value = _workout.value.copy(message = null)
+    }
+
+    fun dismissProgramCompletion() {
+        _workout.value = _workout.value.copy(programCompleted = false)
     }
 }
