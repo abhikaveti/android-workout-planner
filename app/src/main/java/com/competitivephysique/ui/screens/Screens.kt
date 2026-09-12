@@ -2,6 +2,7 @@ package com.competitivephysique.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -171,27 +172,95 @@ fun CoachScreen(state: CoachUiState, onGenerate: () -> Unit, onDismiss: () -> Un
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanGenerationScreen(state: PlanGenerationUiState, onUpdate: (PlanGenerationProfile) -> Unit, onGenerate: () -> Unit) {
     val clipboard = LocalClipboardManager.current
+    val listState = rememberLazyListState()
     val p = state.profile
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { Text("Build Your Plan", style = MaterialTheme.typography.headlineMedium); Text("Answer the profile questions, generate a prompt, then use ChatGPT and import the returned JSON.") }
-        item { OutlinedTextField(p.goal, { onUpdate(p.copy(goal = it)) }, Modifier.fillMaxWidth(), label = { Text("Goal") }) }
-        item { OutlinedTextField(p.experience, { onUpdate(p.copy(experience = it)) }, Modifier.fillMaxWidth(), label = { Text("Experience") }) }
-        item { OutlinedTextField(p.trainingDays.toString(), { onUpdate(p.copy(trainingDays = it.toIntOrNull()?.coerceIn(1, 7) ?: p.trainingDays)) }, Modifier.fillMaxWidth(), label = { Text("Training days per week") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)) }
+    var experienceExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.prompt) {
+        if (state.prompt.isNotBlank()) listState.animateScrollToItem(listState.layoutInfo.totalItemsCount.coerceAtLeast(1) - 1)
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item {
+            Text("Build Your Plan", style = MaterialTheme.typography.headlineMedium)
+            Text("Answer the profile questions, generate a prompt, then use ChatGPT and import the returned JSON.")
+        }
+        item {
+            OutlinedTextField(
+                value = p.goal,
+                onValueChange = { onUpdate(p.copy(goal = it)) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Goal") },
+                isError = state.errors.containsKey("goal"),
+                supportingText = { state.errors["goal"]?.let { Text(it) } }
+            )
+        }
+        item {
+            ExposedDropdownMenuBox(expanded = experienceExpanded, onExpandedChange = { experienceExpanded = !experienceExpanded }) {
+                OutlinedTextField(
+                    value = p.experience,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    label = { Text("Experience") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = experienceExpanded) },
+                    isError = state.errors.containsKey("experience"),
+                    supportingText = { state.errors["experience"]?.let { Text(it) } }
+                )
+                ExposedDropdownMenu(expanded = experienceExpanded, onDismissRequest = { experienceExpanded = false }) {
+                    listOf("Beginner", "Intermediate", "Advanced", "Professional").forEach { level ->
+                        DropdownMenuItem(text = { Text(level) }, onClick = {
+                            onUpdate(p.copy(experience = level))
+                            experienceExpanded = false
+                        })
+                    }
+                }
+            }
+        }
+        item {
+            OutlinedTextField(
+                value = p.trainingDays,
+                onValueChange = { onUpdate(p.copy(trainingDays = it.filter(Char::isDigit))) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Training days per week") },
+                placeholder = { Text("1–7") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = state.errors.containsKey("trainingDays"),
+                supportingText = { state.errors["trainingDays"]?.let { Text(it) } }
+            )
+        }
         item { OutlinedTextField(p.gymEquipment, { onUpdate(p.copy(gymEquipment = it)) }, Modifier.fillMaxWidth(), label = { Text("Gym equipment") }) }
         item { OutlinedTextField(p.homeEquipment, { onUpdate(p.copy(homeEquipment = it)) }, Modifier.fillMaxWidth(), label = { Text("Home equipment") }) }
         item { OutlinedTextField(p.weakAreas, { onUpdate(p.copy(weakAreas = it)) }, Modifier.fillMaxWidth(), label = { Text("Weak areas") }) }
         item { OutlinedTextField(p.restrictions, { onUpdate(p.copy(restrictions = it)) }, Modifier.fillMaxWidth(), label = { Text("Restrictions / exercises to avoid") }) }
         item { OutlinedTextField(p.preferences, { onUpdate(p.copy(preferences = it)) }, Modifier.fillMaxWidth(), label = { Text("Training preferences") }) }
-        item { OutlinedTextField(p.sessionDurationMinutes.toString(), { onUpdate(p.copy(sessionDurationMinutes = it.toIntOrNull()?.coerceIn(20, 240) ?: p.sessionDurationMinutes)) }, Modifier.fillMaxWidth(), label = { Text("Session duration (minutes)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)) }
+        item {
+            OutlinedTextField(
+                value = p.sessionDurationMinutes,
+                onValueChange = { onUpdate(p.copy(sessionDurationMinutes = it.filter(Char::isDigit))) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Session duration (minutes)") },
+                placeholder = { Text("20–240") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = state.errors.containsKey("duration"),
+                supportingText = { state.errors["duration"]?.let { Text(it) } }
+            )
+        }
         item { OutlinedTextField(p.physiqueObjective, { onUpdate(p.copy(physiqueObjective = it)) }, Modifier.fillMaxWidth(), label = { Text("Physique objective") }) }
         item { Button(onClick = onGenerate, modifier = Modifier.fillMaxWidth()) { Text("Generate Plan Prompt") } }
         if (state.prompt.isNotBlank()) item {
             ElevatedCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Ready for ChatGPT", style = MaterialTheme.typography.titleMedium)
+                    Text("Your prompt is ready. Copy it and paste it into ChatGPT.")
                     OutlinedButton(onClick = { clipboard.setText(AnnotatedString(state.prompt)) }, modifier = Modifier.fillMaxWidth()) { Text("Copy Prompt") }
                     Text(state.prompt, style = MaterialTheme.typography.bodySmall)
                 }
@@ -199,7 +268,6 @@ fun PlanGenerationScreen(state: PlanGenerationUiState, onUpdate: (PlanGeneration
         }
     }
 }
-
 
 @Composable
 fun PlanAssessmentScreen(state: PlanAssessmentUiState, onUpdate: (PlanAssessmentRequest) -> Unit, onGenerate: () -> Unit) {
