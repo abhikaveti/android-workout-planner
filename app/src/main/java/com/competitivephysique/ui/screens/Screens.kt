@@ -3,6 +3,7 @@ package com.competitivephysique.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
@@ -41,6 +43,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.competitivephysique.domain.assessment.PlanAssessmentRequest
 import com.competitivephysique.domain.generation.PlanGenerationProfile
@@ -93,14 +96,41 @@ fun PlanImportScreen(vm: AppViewModel) {
 
 @Composable
 fun StatusChip(status: WorkoutDisplayStatus, locked: Boolean = false) {
-    val label = when {
-        locked -> "LOCKED"
-        status == WorkoutDisplayStatus.COMPLETED -> "COMPLETED"
-        status == WorkoutDisplayStatus.IN_PROGRESS -> "IN PROGRESS"
-        status == WorkoutDisplayStatus.NEXT -> "NEXT"
+    if (locked) return
+
+    // NEXT is a scheduling state; visually it belongs to NOT STARTED.
+    val displayStatus = when (status) {
+        WorkoutDisplayStatus.NEXT -> WorkoutDisplayStatus.NOT_STARTED
+        else -> status
+    }
+
+    val label = when (displayStatus) {
+        WorkoutDisplayStatus.COMPLETED -> "COMPLETED"
+        WorkoutDisplayStatus.IN_PROGRESS -> "IN PROGRESS"
         else -> "NOT STARTED"
     }
-    AssistChip(onClick = {}, enabled = false, label = { Text(label) })
+
+    val colors = when (displayStatus) {
+        WorkoutDisplayStatus.COMPLETED -> AssistChipDefaults.assistChipColors(
+            containerColor = Color(0xFFDFF6E5),
+            labelColor = Color(0xFF176B36)
+        )
+        WorkoutDisplayStatus.IN_PROGRESS -> AssistChipDefaults.assistChipColors(
+            containerColor = Color(0xFFE1ECFF),
+            labelColor = Color(0xFF174EA6)
+        )
+        else -> AssistChipDefaults.assistChipColors(
+            containerColor = Color(0xFFFFF0D5),
+            labelColor = Color(0xFF8A5200)
+        )
+    }
+
+    AssistChip(
+        onClick = {},
+        enabled = false,
+        colors = colors,
+        label = { Text(label, style = MaterialTheme.typography.labelMedium) }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,58 +155,73 @@ fun WorkoutOverviewScreen(
         item {
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("WORKOUTS", style = MaterialTheme.typography.titleLarge)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "WORKOUTS",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ExposedDropdownMenuBox(
+                            expanded = weekMenuExpanded,
+                            onExpandedChange = { weekMenuExpanded = !weekMenuExpanded },
+                            modifier = Modifier.width(150.dp)
+                        ) {
+                            AssistChip(
+                                onClick = { weekMenuExpanded = !weekMenuExpanded },
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .width(150.dp),
+                                label = {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Week ${selectedWeek}")
+                                        Text(if (weekMenuExpanded) "▲" else "▼")
+                                    }
+                                }
+                            )
+                            ExposedDropdownMenu(
+                                expanded = weekMenuExpanded,
+                                onDismissRequest = { weekMenuExpanded = false }
+                            ) {
+                                (1..totalWeeks.coerceAtLeast(1)).forEach { week ->
+                                    val weekEntries = items.filter { it.weekNumber == week }
+                                    val locked = weekEntries.isNotEmpty() && weekEntries.all { it.locked }
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                when {
+                                                    locked -> "Week ${week} • Locked"
+                                                    week < currentWeek -> "Week ${week} • Complete"
+                                                    week == currentWeek -> "Week ${week} • Current"
+                                                    else -> "Week ${week}"
+                                                }
+                                            )
+                                        },
+                                        onClick = {
+                                            selectedWeek = week
+                                            weekMenuExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                     Text(
                         if (selectedLocked) "Future week — complete earlier weeks to unlock"
                         else if (selectedWeek < currentWeek) "Completed week — view training history"
                         else "Active plan schedule",
                         style = MaterialTheme.typography.bodyMedium
                     )
-                }
-                ExposedDropdownMenuBox(
-                    expanded = weekMenuExpanded,
-                    onExpandedChange = { weekMenuExpanded = !weekMenuExpanded },
-                    modifier = Modifier.width(150.dp)
-                ) {
-                    OutlinedTextField(
-                        value = "Week ${selectedWeek}",
-                        onValueChange = {},
-                        readOnly = true,
-                        modifier = Modifier
-                            .menuAnchor()
-                            .width(150.dp),
-                        textStyle = MaterialTheme.typography.titleMedium,
-                        singleLine = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = weekMenuExpanded) }
-                    )
-                    ExposedDropdownMenu(
-                        expanded = weekMenuExpanded,
-                        onDismissRequest = { weekMenuExpanded = false }
-                    ) {
-                        (1..totalWeeks.coerceAtLeast(1)).forEach { week ->
-                            val weekEntries = items.filter { it.weekNumber == week }
-                            val locked = weekEntries.isNotEmpty() && weekEntries.all { it.locked }
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        when {
-                                            locked -> "Week ${week} • Locked"
-                                            week < currentWeek -> "Week ${week} • Complete"
-                                            week == currentWeek -> "Week ${week} • Current"
-                                            else -> "Week ${week}"
-                                        }
-                                    )
-                                },
-                                onClick = {
-                                    selectedWeek = week
-                                    weekMenuExpanded = false
-                                }
-                            )
-                        }
-                    }
                 }
             }
         }
