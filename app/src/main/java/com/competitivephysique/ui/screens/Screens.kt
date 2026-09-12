@@ -1,5 +1,8 @@
 package com.competitivephysique.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -8,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -177,6 +181,7 @@ fun CoachScreen(state: CoachUiState, onGenerate: () -> Unit, onDismiss: () -> Un
 @Composable
 fun PlanGenerationScreen(state: PlanGenerationUiState, onUpdate: (PlanGenerationProfile) -> Unit, onGenerate: () -> Unit) {
     val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
     val listState = rememberLazyListState()
     val p = state.profile
     var experienceExpanded by remember { mutableStateOf(false) }
@@ -263,6 +268,10 @@ fun PlanGenerationScreen(state: PlanGenerationUiState, onUpdate: (PlanGeneration
                     Text("Ready for ChatGPT", style = MaterialTheme.typography.titleMedium)
                     Text("Your prompt is ready. Copy it and paste it into ChatGPT.")
                     OutlinedButton(onClick = { clipboard.setText(AnnotatedString(state.prompt)) }, modifier = Modifier.fillMaxWidth()) { Text("Copy Prompt") }
+                    Button(onClick = {
+                        clipboard.setText(AnnotatedString(state.prompt))
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://chatgpt.com")))
+                    }, modifier = Modifier.fillMaxWidth()) { Text("Open ChatGPT (Prompt Copied)") }
                     Text(state.prompt, style = MaterialTheme.typography.bodySmall)
                 }
             }
