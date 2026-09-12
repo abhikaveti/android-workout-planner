@@ -198,3 +198,18 @@ Target capability:
 - Cloud sync
 - Traditional backend
 - Mandatory paid AI API
+
+
+---
+
+## M3 — Plan Generation Wizard
+
+**Status:** IMPLEMENTED
+
+- Added PlanGenerationProfile.
+- Added PlanGenerationPromptBuilder.
+- Added questionnaire-style generation UI for goals, experience, training frequency, equipment, weak areas, restrictions, preferences, session duration and physique objective.
+- Added Generate tab and copy-to-ChatGPT flow.
+- Prompt explicitly requests import-compatible JSON.
+- Reuses the existing JSON import/validation pipeline after ChatGPT generation.
+- Added focused prompt builder test.
