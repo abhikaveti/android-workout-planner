@@ -12,6 +12,7 @@ import com.competitivephysique.domain.plan.*
 import com.competitivephysique.domain.coach.*
 import com.competitivephysique.domain.generation.*
 import com.competitivephysique.domain.assessment.*
+import com.competitivephysique.domain.analytics.*
 import com.competitivephysique.domain.progression.ExerciseProgressionInsight
 import com.competitivephysique.domain.progression.ProgressionEngine
 import kotlinx.coroutines.flow.*
@@ -80,6 +81,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _history = MutableStateFlow<List<HistoryItem>>(emptyList())
     val history = _history.asStateFlow()
 
+    private val _analytics = MutableStateFlow(ProgressAnalytics(0, 0, 0.0, emptyList()))
+    val analytics = _analytics.asStateFlow()
+
     private val _import = MutableStateFlow(ImportUiState())
     val import = _import.asStateFlow()
 
@@ -136,6 +140,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 logs = dao.getSetLogs(session.id)
             )
         }
+        _analytics.value = ProgressAnalyticsEngine.build(_history.value)
     }
 
     fun updateImportJson(value: String) {
