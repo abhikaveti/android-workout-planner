@@ -55,7 +55,7 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
                     AppTab.ASSESS -> PlanAssessmentScreen(assessment, vm::updateAssessmentRequest, vm::generateAssessmentPrompt)
                     AppTab.EDIT -> PlanEditorScreen(editor, vm::updateEditorJson, vm::validateEditedPlan, vm::saveEditedPlan, vm::dismissEditorMessage)
                     AppTab.WORKOUT -> if (executing) {
-                        WorkoutScreen(workout, vm::logSet, vm::requestCompleteWorkout, vm::confirmCompleteWorkout, vm::cancelCompletion, vm::dismissWorkoutMessage)
+                        WorkoutScreen(workout, vm::logSet, vm::requestCompleteWorkout, vm::confirmCompleteWorkout, vm::cancelCompletion, vm::dismissWorkoutMessage) { vm.dismissProgramCompletion(); tab = AppTab.ASSESS; executing = false }
                     } else {
                         WorkoutOverviewScreen(overview) { workoutId ->
                             executing = true
