@@ -213,3 +213,17 @@ Target capability:
 - Prompt explicitly requests import-compatible JSON.
 - Reuses the existing JSON import/validation pipeline after ChatGPT generation.
 - Added focused prompt builder test.
+
+
+---
+
+## M4 — Existing Plan Assessment
+
+**Status:** IMPLEMENTED
+
+- Added plain-text/JSON existing-plan input.
+- Added structured user context for goals, weak areas, equipment and performance.
+- Added PlanAssessmentPromptBuilder.
+- Added assessment UI and copy-to-ChatGPT workflow.
+- Prompt requests assessment plus revised JSON compatible with the existing importer.
+- Added focused prompt test.
