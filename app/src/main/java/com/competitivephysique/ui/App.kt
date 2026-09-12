@@ -1,7 +1,6 @@
 package com.competitivephysique.ui
 
 import androidx.activity.compose.BackHandler
-
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -12,7 +11,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.competitivephysique.ui.screens.*
 import com.competitivephysique.ui.viewmodel.AppViewModel
 
-private enum class AppTab { HOME, IMPORT, GENERATE, ASSESS, EDIT, WORKOUT, PROGRESS, COACH }
+private enum class AppTab { HOME, IMPORT, GENERATE, ASSESS, WORKOUT, PROGRESS, COACH }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,12 +29,10 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
     }
 
     BackHandler(enabled = executing || backStack.isNotEmpty()) {
-        if (executing) {
-            executing = false
-        } else if (backStack.isNotEmpty()) {
-            tab = backStack.removeAt(backStack.lastIndex)
-        }
+        if (executing) executing = false
+        else if (backStack.isNotEmpty()) tab = backStack.removeAt(backStack.lastIndex)
     }
+
     val active by vm.activePlan.collectAsState()
     val next by vm.nextWorkout.collectAsState()
     val workout by vm.workout.collectAsState()
@@ -46,7 +43,6 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
     val coach by vm.coach.collectAsState()
     val generation by vm.generation.collectAsState()
     val assessment by vm.assessment.collectAsState()
-    val editor by vm.editor.collectAsState()
 
     LaunchedEffect(active?.id) { vm.refreshProgramState() }
 
@@ -59,7 +55,6 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
                     NavigationBarItem(selected = tab == AppTab.IMPORT, onClick = { navigateTo(AppTab.IMPORT) }, icon = { Icon(Icons.Default.UploadFile, "Plan") }, alwaysShowLabel = false)
                     NavigationBarItem(selected = tab == AppTab.GENERATE, onClick = { navigateTo(AppTab.GENERATE) }, icon = { Icon(Icons.Default.AutoAwesome, "Generate") }, alwaysShowLabel = false)
                     NavigationBarItem(selected = tab == AppTab.ASSESS, onClick = { navigateTo(AppTab.ASSESS) }, icon = { Icon(Icons.Default.Search, "Assess") }, alwaysShowLabel = false)
-                    NavigationBarItem(selected = tab == AppTab.EDIT, onClick = { navigateTo(AppTab.EDIT) }, icon = { Icon(Icons.Default.Edit, "Edit") }, alwaysShowLabel = false)
                     NavigationBarItem(selected = tab == AppTab.WORKOUT, onClick = { navigateTo(AppTab.WORKOUT); vm.refreshProgramState() }, icon = { Icon(Icons.Default.FitnessCenter, "Workout") }, alwaysShowLabel = false)
                     NavigationBarItem(selected = tab == AppTab.PROGRESS, onClick = { navigateTo(AppTab.PROGRESS); vm.refreshProgramState() }, icon = { Icon(Icons.Default.BarChart, "Progress") }, alwaysShowLabel = false)
                     NavigationBarItem(selected = tab == AppTab.COACH, onClick = { navigateTo(AppTab.COACH) }, icon = { Icon(Icons.Default.Chat, "Coach") }, alwaysShowLabel = false)
@@ -72,7 +67,6 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
                     AppTab.IMPORT -> PlanImportScreen(vm)
                     AppTab.GENERATE -> PlanGenerationScreen(generation, vm::updateGenerationProfile, vm::generatePlanPrompt)
                     AppTab.ASSESS -> PlanAssessmentScreen(assessment, vm::updateAssessmentRequest, vm::generateAssessmentPrompt)
-                    AppTab.EDIT -> PlanEditorScreen(editor, vm::updateEditorJson, vm::validateEditedPlan, vm::saveEditedPlan, vm::dismissEditorMessage)
                     AppTab.WORKOUT -> if (executing) {
                         WorkoutScreen(workout, vm::logSet, vm::requestCompleteWorkout, vm::confirmCompleteWorkout, vm::cancelCompletion, vm::dismissWorkoutMessage) { vm.dismissProgramCompletion(); navigateTo(AppTab.ASSESS) }
                     } else {
