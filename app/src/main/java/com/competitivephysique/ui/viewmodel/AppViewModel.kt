@@ -1,6 +1,7 @@
 package com.competitivephysique.ui.viewmodel
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.competitivephysique.data.local.*
@@ -39,7 +40,9 @@ data class HistoryItem(
 data class ImportUiState(
     val rawJson: String = "",
     val errors: List<String> = emptyList(),
-    val preview: TrainingPlan? = null
+    val preview: TrainingPlan? = null,
+    val selectedFileName: String? = null,
+    val message: String? = null
 )
 
 data class PlanEditorUiState(
@@ -182,11 +185,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _import.value = _import.value.copy(rawJson = value, errors = emptyList(), preview = null)
     }
 
+    fun importFile(uri: Uri) {
+        val context = getApplication<Application>()
+        val name = PlanFileParser.displayName(context, uri)
+        when (val result = PlanFileParser.parse(context, uri)) {
+            is PlanImportResult.Success -> _import.value = ImportUiState(
+                rawJson = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty(),
+                preview = result.plan,
+                selectedFileName = name
+            )
+            is PlanImportResult.Failure -> _import.value = _import.value.copy(
+                selectedFileName = name,
+                errors = result.errors,
+                preview = null,
+                message = result.errors.joinToString("\n")
+            )
+        }
+    }
+
     fun validateImport() {
         when (val result = PlanImporter.parse(_import.value.rawJson)) {
             is PlanImportResult.Success -> _import.value = _import.value.copy(preview = result.plan, errors = emptyList())
             is PlanImportResult.Failure -> _import.value = _import.value.copy(preview = null, errors = result.errors)
         }
+    }
+
+    fun dismissImportMessage() {
+        _import.value = _import.value.copy(message = null)
     }
 
     fun saveImportedPlan() = viewModelScope.launch {
