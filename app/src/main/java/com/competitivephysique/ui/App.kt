@@ -23,6 +23,7 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
     val overview by vm.overview.collectAsState()
     val history by vm.history.collectAsState()
     val analytics by vm.analytics.collectAsState()
+    val programState by vm.programState.collectAsState()
     val coach by vm.coach.collectAsState()
     val generation by vm.generation.collectAsState()
     val assessment by vm.assessment.collectAsState()
@@ -46,7 +47,7 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
         ) { padding ->
             Surface(Modifier.padding(padding)) {
                 when (tab) {
-                    AppTab.HOME -> HomeScreen(active?.name, next?.name, history.size, vm::seedAndActivateSample, { tab = AppTab.IMPORT }, { tab = AppTab.WORKOUT; executing = false })
+                    AppTab.HOME -> HomeScreen(active?.name, next?.name, history.size, programState, vm::seedAndActivateSample, { tab = AppTab.IMPORT }, { tab = AppTab.WORKOUT; executing = false })
                     AppTab.IMPORT -> PlanImportScreen(vm)
                     AppTab.GENERATE -> PlanGenerationScreen(generation, vm::updateGenerationProfile, vm::generatePlanPrompt)
                     AppTab.ASSESS -> PlanAssessmentScreen(assessment, vm::updateAssessmentRequest, vm::generateAssessmentPrompt)
