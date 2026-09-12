@@ -10,7 +10,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.competitivephysique.ui.screens.*
 import com.competitivephysique.ui.viewmodel.AppViewModel
 
-private enum class AppTab { HOME, IMPORT, GENERATE, WORKOUT, PROGRESS, COACH }
+private enum class AppTab { HOME, IMPORT, GENERATE, ASSESS, WORKOUT, PROGRESS, COACH }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +24,7 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
     val history by vm.history.collectAsState()
     val coach by vm.coach.collectAsState()
     val generation by vm.generation.collectAsState()
+    val assessment by vm.assessment.collectAsState()
 
     LaunchedEffect(active?.id) { vm.refreshProgramState() }
 
@@ -35,6 +36,7 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
                     NavigationBarItem(tab == AppTab.HOME, { tab = AppTab.HOME; executing = false }, { Icon(Icons.Default.Home, null) }, { Text("Home") })
                     NavigationBarItem(tab == AppTab.IMPORT, { tab = AppTab.IMPORT; executing = false }, { Icon(Icons.Default.UploadFile, null) }, { Text("Plan") })
                     NavigationBarItem(tab == AppTab.GENERATE, { tab = AppTab.GENERATE; executing = false }, { Icon(Icons.Default.AutoAwesome, null) }, { Text("Generate") })
+                    NavigationBarItem(tab == AppTab.ASSESS, { tab = AppTab.ASSESS; executing = false }, { Icon(Icons.Default.Search, null) }, { Text("Assess") })
                     NavigationBarItem(tab == AppTab.WORKOUT, { tab = AppTab.WORKOUT; executing = false; vm.refreshProgramState() }, { Icon(Icons.Default.FitnessCenter, null) }, { Text("Workout") })
                     NavigationBarItem(tab == AppTab.PROGRESS, { tab = AppTab.PROGRESS; executing = false; vm.refreshProgramState() }, { Icon(Icons.Default.BarChart, null) }, { Text("Progress") })
                     NavigationBarItem(tab == AppTab.COACH, { tab = AppTab.COACH; executing = false }, { Icon(Icons.Default.Chat, null) }, { Text("Coach") })
@@ -46,6 +48,7 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
                     AppTab.HOME -> HomeScreen(active?.name, next?.name, history.size, vm::seedAndActivateSample, { tab = AppTab.IMPORT }, { tab = AppTab.WORKOUT; executing = false })
                     AppTab.IMPORT -> PlanImportScreen(vm)
                     AppTab.GENERATE -> PlanGenerationScreen(generation, vm::updateGenerationProfile, vm::generatePlanPrompt)
+                    AppTab.ASSESS -> PlanAssessmentScreen(assessment, vm::updateAssessmentRequest, vm::generateAssessmentPrompt)
                     AppTab.WORKOUT -> if (executing) {
                         WorkoutScreen(workout, vm::logSet, vm::requestCompleteWorkout, vm::confirmCompleteWorkout, vm::cancelCompletion, vm::dismissWorkoutMessage)
                     } else {
