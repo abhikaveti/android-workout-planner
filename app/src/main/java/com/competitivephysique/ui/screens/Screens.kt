@@ -3,6 +3,7 @@ package com.competitivephysique.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -90,17 +91,108 @@ fun PlanImportScreen(vm: AppViewModel) {
 }
 
 @Composable
-fun StatusChip(status: WorkoutDisplayStatus) {
-    val label = when(status) { WorkoutDisplayStatus.COMPLETED -> "COMPLETED"; WorkoutDisplayStatus.IN_PROGRESS -> "IN PROGRESS"; WorkoutDisplayStatus.NEXT -> "NEXT"; WorkoutDisplayStatus.NOT_STARTED -> "NOT STARTED" }
-    AssistChip(onClick = {}, label = { Text(label) })
+fun StatusChip(status: WorkoutDisplayStatus, locked: Boolean = false) {
+    val label = when {
+        locked -> "LOCKED"
+        status == WorkoutDisplayStatus.COMPLETED -> "COMPLETED"
+        status == WorkoutDisplayStatus.IN_PROGRESS -> "IN PROGRESS"
+        status == WorkoutDisplayStatus.NEXT -> "NEXT"
+        else -> "NOT STARTED"
+    }
+    AssistChip(onClick = {}, enabled = false, label = { Text(label) })
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkoutOverviewScreen(items: List<WorkoutOverviewItem>, onSelect: (String) -> Unit) {
+fun WorkoutOverviewScreen(
+    items: List<WorkoutOverviewItem>,
+    currentWeek: Int,
+    totalWeeks: Int,
+    onSelect: (String) -> Unit
+) {
+    var selectedWeek by remember { mutableStateOf(currentWeek.coerceAtLeast(1)) }
+    var weekMenuExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(currentWeek, totalWeeks) {
+        if (selectedWeek !in 1..totalWeeks.coerceAtLeast(1)) selectedWeek = currentWeek.coerceAtLeast(1)
+    }
+
+    val weekItems = items.filter { it.weekNumber == selectedWeek }
+    val selectedLocked = weekItems.isNotEmpty() && weekItems.all { it.locked }
+
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("WORKOUTS", style = MaterialTheme.typography.headlineMedium); Text("Week 1", style = MaterialTheme.typography.titleMedium) } }
-        if (items.isEmpty()) item { Text("No active plan. Import or activate a plan to see your workouts.") }
-        items.forEach { item -> item { ElevatedCard(modifier = Modifier.fillMaxWidth(), onClick = { onSelect(item.definition.id) }) { Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) { Column { Text(item.definition.name, style = MaterialTheme.typography.titleLarge); Text("Day " + item.dayNumber) }; StatusChip(item.status) } } } }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("WORKOUTS", style = MaterialTheme.typography.headlineMedium)
+                    Text(
+                        if (selectedLocked) "Future week — complete earlier weeks to unlock"
+                        else if (selectedWeek < currentWeek) "Completed week — view training history"
+                        else "Active plan schedule"
+                    )
+                }
+                ExposedDropdownMenuBox(
+                    expanded = weekMenuExpanded,
+                    onExpandedChange = { weekMenuExpanded = !weekMenuExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = "Week ${selectedWeek}",
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.menuAnchor(),
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = weekMenuExpanded) }
+                    )
+                    ExposedDropdownMenu(
+                        expanded = weekMenuExpanded,
+                        onDismissRequest = { weekMenuExpanded = false }
+                    ) {
+                        (1..totalWeeks.coerceAtLeast(1)).forEach { week ->
+                            val weekEntries = items.filter { it.weekNumber == week }
+                            val locked = weekEntries.isNotEmpty() && weekEntries.all { it.locked }
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        when {
+                                            locked -> "Week ${week} • Locked"
+                                            week < currentWeek -> "Week ${week} • Complete"
+                                            week == currentWeek -> "Week ${week} • Current"
+                                            else -> "Week ${week}"
+                                        }
+                                    )
+                                },
+                                onClick = {
+                                    selectedWeek = week
+                                    weekMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (items.isEmpty()) {
+            item { Text("No active plan. Import or activate a plan to see your workouts.") }
+        } else if (weekItems.isEmpty()) {
+            item { Text("This active plan has no workouts scheduled for Week ${selectedWeek}.") }
+        } else {
+            weekItems.forEach { workoutItem ->
+                item {
+                    ElevatedCard(
+                        modifier = Modifier.fillMaxWidth().alpha(if (workoutItem.locked) 0.45f else 1f),
+                        onClick = { if (!workoutItem.locked) onSelect(workoutItem.definition.id) }
+                    ) {
+                        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(Modifier.weight(1f)) {
+                                Text(workoutItem.definition.name, style = MaterialTheme.typography.titleLarge)
+                                Text("Workout ${workoutItem.dayNumber}")
+                            }
+                            StatusChip(workoutItem.status, workoutItem.locked)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -1,5 +1,7 @@
 package com.competitivephysique.ui
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,6 +19,23 @@ private enum class AppTab { HOME, IMPORT, GENERATE, ASSESS, EDIT, WORKOUT, PROGR
 fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
     var tab by remember { mutableStateOf(AppTab.HOME) }
     var executing by remember { mutableStateOf(false) }
+    val backStack = remember { mutableStateListOf<AppTab>() }
+
+    fun navigateTo(destination: AppTab) {
+        if (destination != tab) {
+            backStack.add(tab)
+            tab = destination
+        }
+        executing = false
+    }
+
+    BackHandler(enabled = executing || backStack.isNotEmpty()) {
+        if (executing) {
+            executing = false
+        } else if (backStack.isNotEmpty()) {
+            tab = backStack.removeAt(backStack.lastIndex)
+        }
+    }
     val active by vm.activePlan.collectAsState()
     val next by vm.nextWorkout.collectAsState()
     val workout by vm.workout.collectAsState()
@@ -36,28 +55,32 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
             topBar = { CenterAlignedTopAppBar(title = { Text("Competitive Physique") }) },
             bottomBar = {
                 NavigationBar {
-                    NavigationBarItem(selected = tab == AppTab.HOME, onClick = { tab = AppTab.HOME; executing = false }, icon = { Icon(Icons.Default.Home, "Home") }, alwaysShowLabel = false)
-                    NavigationBarItem(selected = tab == AppTab.IMPORT, onClick = { tab = AppTab.IMPORT; executing = false }, icon = { Icon(Icons.Default.UploadFile, "Plan") }, alwaysShowLabel = false)
-                    NavigationBarItem(selected = tab == AppTab.GENERATE, onClick = { tab = AppTab.GENERATE; executing = false }, icon = { Icon(Icons.Default.AutoAwesome, "Generate") }, alwaysShowLabel = false)
-                    NavigationBarItem(selected = tab == AppTab.ASSESS, onClick = { tab = AppTab.ASSESS; executing = false }, icon = { Icon(Icons.Default.Search, "Assess") }, alwaysShowLabel = false)
-                    NavigationBarItem(selected = tab == AppTab.EDIT, onClick = { tab = AppTab.EDIT; executing = false }, icon = { Icon(Icons.Default.Edit, "Edit") }, alwaysShowLabel = false)
-                    NavigationBarItem(selected = tab == AppTab.WORKOUT, onClick = { tab = AppTab.WORKOUT; executing = false; vm.refreshProgramState() }, icon = { Icon(Icons.Default.FitnessCenter, "Workout") }, alwaysShowLabel = false)
-                    NavigationBarItem(selected = tab == AppTab.PROGRESS, onClick = { tab = AppTab.PROGRESS; executing = false; vm.refreshProgramState() }, icon = { Icon(Icons.Default.BarChart, "Progress") }, alwaysShowLabel = false)
-                    NavigationBarItem(selected = tab == AppTab.COACH, onClick = { tab = AppTab.COACH; executing = false }, icon = { Icon(Icons.Default.Chat, "Coach") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.HOME, onClick = { navigateTo(AppTab.HOME) }, icon = { Icon(Icons.Default.Home, "Home") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.IMPORT, onClick = { navigateTo(AppTab.IMPORT) }, icon = { Icon(Icons.Default.UploadFile, "Plan") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.GENERATE, onClick = { navigateTo(AppTab.GENERATE) }, icon = { Icon(Icons.Default.AutoAwesome, "Generate") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.ASSESS, onClick = { navigateTo(AppTab.ASSESS) }, icon = { Icon(Icons.Default.Search, "Assess") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.EDIT, onClick = { navigateTo(AppTab.EDIT) }, icon = { Icon(Icons.Default.Edit, "Edit") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.WORKOUT, onClick = { navigateTo(AppTab.WORKOUT); vm.refreshProgramState() }, icon = { Icon(Icons.Default.FitnessCenter, "Workout") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.PROGRESS, onClick = { navigateTo(AppTab.PROGRESS); vm.refreshProgramState() }, icon = { Icon(Icons.Default.BarChart, "Progress") }, alwaysShowLabel = false)
+                    NavigationBarItem(selected = tab == AppTab.COACH, onClick = { navigateTo(AppTab.COACH) }, icon = { Icon(Icons.Default.Chat, "Coach") }, alwaysShowLabel = false)
                 }
             }
         ) { padding ->
             Surface(Modifier.padding(padding)) {
                 when (tab) {
-                    AppTab.HOME -> HomeScreen(active?.name, next?.name, history.size, programState, vm::seedAndActivateSample, { tab = AppTab.IMPORT }, { tab = AppTab.WORKOUT; executing = false })
+                    AppTab.HOME -> HomeScreen(active?.name, next?.name, history.size, programState, vm::seedAndActivateSample, { navigateTo(AppTab.IMPORT) }, { navigateTo(AppTab.WORKOUT) })
                     AppTab.IMPORT -> PlanImportScreen(vm)
                     AppTab.GENERATE -> PlanGenerationScreen(generation, vm::updateGenerationProfile, vm::generatePlanPrompt)
                     AppTab.ASSESS -> PlanAssessmentScreen(assessment, vm::updateAssessmentRequest, vm::generateAssessmentPrompt)
                     AppTab.EDIT -> PlanEditorScreen(editor, vm::updateEditorJson, vm::validateEditedPlan, vm::saveEditedPlan, vm::dismissEditorMessage)
                     AppTab.WORKOUT -> if (executing) {
-                        WorkoutScreen(workout, vm::logSet, vm::requestCompleteWorkout, vm::confirmCompleteWorkout, vm::cancelCompletion, vm::dismissWorkoutMessage) { vm.dismissProgramCompletion(); tab = AppTab.ASSESS; executing = false }
+                        WorkoutScreen(workout, vm::logSet, vm::requestCompleteWorkout, vm::confirmCompleteWorkout, vm::cancelCompletion, vm::dismissWorkoutMessage) { vm.dismissProgramCompletion(); navigateTo(AppTab.ASSESS) }
                     } else {
-                        WorkoutOverviewScreen(overview) { workoutId ->
+                        WorkoutOverviewScreen(
+                            items = overview,
+                            currentWeek = programState.currentWeek,
+                            totalWeeks = overview.maxOfOrNull { it.weekNumber } ?: 1
+                        ) { workoutId ->
                             executing = true
                             vm.selectWorkout(workoutId)
                         }

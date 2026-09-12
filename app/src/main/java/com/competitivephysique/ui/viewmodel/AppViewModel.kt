@@ -24,8 +24,10 @@ enum class WorkoutDisplayStatus { NOT_STARTED, IN_PROGRESS, NEXT, COMPLETED }
 
 data class WorkoutOverviewItem(
     val definition: WorkoutDefinitionEntity,
+    val weekNumber: Int,
     val dayNumber: Int,
-    val status: WorkoutDisplayStatus
+    val status: WorkoutDisplayStatus,
+    val locked: Boolean = false
 )
 
 data class HistoryItem(
@@ -136,21 +138,34 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val completed = dao.getCompletedSessions(active.id)
-        val completedIds = completed.map { it.workoutDefinitionId }.toSet()
         val current = dao.getCurrentSession()?.takeIf { it.planId == active.id }
-        val nextId = _nextWorkout.value?.id
 
-        val phases = dao.getPhases(active.id)
+        val phases = dao.getPhases(active.id).sortedBy { it.sequenceOrder }
         val definitions = phases.flatMap { dao.getWorkoutsForPhase(it.id) }
-        _programState.value = ProgramStateEngine.resolve(phases, definitions, completed.size, _nextWorkout.value)
-        _overview.value = definitions.mapIndexed { index, definition ->
+        val resolvedState = ProgramStateEngine.resolve(phases, definitions, completed.size, _nextWorkout.value)
+        _programState.value = resolvedState
+
+        val weeklySchedule = buildList<Pair<Int, WorkoutDefinitionEntity>> {
+            val totalWeeks = phases.maxOfOrNull { it.endWeek } ?: 0
+            for (week in 1..totalWeeks) {
+                val phase = phases.firstOrNull { week in it.startWeek..it.endWeek } ?: continue
+                dao.getWorkoutsForPhase(phase.id).sortedBy { it.sequenceOrder }.forEach { workout ->
+                    add(week to workout)
+                }
+            }
+        }
+
+        _overview.value = weeklySchedule.mapIndexed { occurrenceIndex, (weekNumber, definition) ->
+            val locked = !resolvedState.programComplete && weekNumber > resolvedState.currentWeek
             val status = when {
-                definition.id in completedIds -> WorkoutDisplayStatus.COMPLETED
-                current?.workoutDefinitionId == definition.id -> WorkoutDisplayStatus.IN_PROGRESS
-                definition.id == nextId -> WorkoutDisplayStatus.NEXT
+                locked -> WorkoutDisplayStatus.NOT_STARTED
+                occurrenceIndex < completed.size -> WorkoutDisplayStatus.COMPLETED
+                current != null && occurrenceIndex == completed.size -> WorkoutDisplayStatus.IN_PROGRESS
+                occurrenceIndex == completed.size -> WorkoutDisplayStatus.NEXT
                 else -> WorkoutDisplayStatus.NOT_STARTED
             }
-            WorkoutOverviewItem(definition, index + 1, status)
+            val dayNumber = weeklySchedule.take(occurrenceIndex + 1).count { it.first == weekNumber }
+            WorkoutOverviewItem(definition, weekNumber, dayNumber, status, locked)
         }
 
         _history.value = completed.map { session ->
