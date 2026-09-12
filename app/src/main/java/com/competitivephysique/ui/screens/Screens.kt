@@ -14,7 +14,7 @@ import com.competitivephysique.domain.progression.ProgressionRecommendation
 import com.competitivephysique.ui.viewmodel.*
 
 @Composable
-fun HomeScreen(plan: String?, next: String?, completedCount: Int, onSample: () -> Unit, onImport: () -> Unit, onWorkout: () -> Unit) {
+fun HomeScreen(plan: String?, next: String?, completedCount: Int, programState: com.competitivephysique.domain.program.ProgramState, onSample: () -> Unit, onImport: () -> Unit, onWorkout: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Training Dashboard", style = MaterialTheme.typography.headlineMedium)
         if (plan == null) {
@@ -26,6 +26,9 @@ fun HomeScreen(plan: String?, next: String?, completedCount: Int, onSample: () -
                 Text("ACTIVE PLAN", style = MaterialTheme.typography.labelLarge)
                 Text(plan, style = MaterialTheme.typography.titleLarge)
                 Text("Completed workouts: " + completedCount)
+                Text("Week " + programState.currentWeek + (programState.phaseName?.let { " • " + it } ?: ""))
+                if (programState.phaseStartWeek != null) Text("Phase weeks " + programState.phaseStartWeek + "–" + programState.phaseEndWeek)
+                if (programState.programComplete) Text("Program cycle complete. Review results before starting another cycle.")
                 Text("Next workout: " + (next ?: "Calculating..."))
                 Button(onClick = onWorkout, enabled = next != null) { Text("Open Workout") }
                 OutlinedButton(onClick = onImport) { Text("Import / Replace Plan") }
