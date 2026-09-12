@@ -227,3 +227,18 @@ Target capability:
 - Added assessment UI and copy-to-ChatGPT workflow.
 - Prompt requests assessment plus revised JSON compatible with the existing importer.
 - Added focused prompt test.
+
+
+---
+
+## M5 — Advanced Progress Analytics
+
+**Status:** IMPLEMENTED
+
+- Added ProgressAnalyticsEngine.
+- Added completed-workout count, tracked exercise count and total volume.
+- Added per-exercise session count, best weight, best reps and volume records.
+- Wired derived analytics into ViewModel state.
+- Added performance records to the Progress dashboard.
+- Added focused analytics test.
+- Analytics are calculated locally from workout history without schema changes.
