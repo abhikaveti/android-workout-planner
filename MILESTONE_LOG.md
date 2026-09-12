@@ -257,3 +257,20 @@ Target capability:
 - Wires program state into the dashboard.
 - Added focused week/phase resolution test.
 - Uses existing phase/workout schema without database migration.
+
+
+---
+
+## M7 — Plan Editing and Lifecycle Refinement
+
+**Status:** IMPLEMENTED
+
+- Added PlanEditEngine using the canonical importer/validator.
+- Added Plan Revision UI for JSON-based plan editing.
+- Added validation before persistence.
+- Added save-and-activate revised-plan workflow.
+- Revision workflow explicitly preserves completed workout history rather than rewriting historical sessions.
+- Added Edit navigation tab.
+- Added focused invalid-input test.
+
+Current implementation deliberately uses JSON revision rather than destructive in-place mutation of historical plan definitions. Rich field-by-field visual editing can be added later on top of this validated lifecycle path.
