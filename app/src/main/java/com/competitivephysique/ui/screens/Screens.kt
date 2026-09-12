@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -122,24 +123,33 @@ fun WorkoutOverviewScreen(
 
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("WORKOUTS", style = MaterialTheme.typography.headlineMedium)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("WORKOUTS", style = MaterialTheme.typography.titleLarge)
                     Text(
                         if (selectedLocked) "Future week — complete earlier weeks to unlock"
                         else if (selectedWeek < currentWeek) "Completed week — view training history"
-                        else "Active plan schedule"
+                        else "Active plan schedule",
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
                 ExposedDropdownMenuBox(
                     expanded = weekMenuExpanded,
-                    onExpandedChange = { weekMenuExpanded = !weekMenuExpanded }
+                    onExpandedChange = { weekMenuExpanded = !weekMenuExpanded },
+                    modifier = Modifier.width(150.dp)
                 ) {
                     OutlinedTextField(
                         value = "Week ${selectedWeek}",
                         onValueChange = {},
                         readOnly = true,
-                        modifier = Modifier.menuAnchor(),
+                        modifier = Modifier
+                            .menuAnchor()
+                            .width(150.dp),
+                        textStyle = MaterialTheme.typography.titleMedium,
+                        singleLine = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = weekMenuExpanded) }
                     )
                     ExposedDropdownMenu(
