@@ -194,8 +194,11 @@ fun WorkoutOverviewScreen(
                     ) {
                         Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column(Modifier.weight(1f)) {
-                                Text(workoutItem.definition.name, style = MaterialTheme.typography.titleLarge)
-                                Text("Workout ${workoutItem.dayNumber}")
+                                Text(workoutItem.definition.name, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "Workout ${workoutItem.dayNumber}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                             StatusChip(workoutItem.status, workoutItem.locked)
                         }
