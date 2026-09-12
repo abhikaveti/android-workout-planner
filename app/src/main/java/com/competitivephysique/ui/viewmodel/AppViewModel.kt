@@ -14,6 +14,7 @@ import com.competitivephysique.domain.generation.*
 import com.competitivephysique.domain.assessment.*
 import com.competitivephysique.domain.analytics.*
 import com.competitivephysique.domain.program.*
+import com.competitivephysique.domain.editor.*
 import com.competitivephysique.domain.progression.ExerciseProgressionInsight
 import com.competitivephysique.domain.progression.ProgressionEngine
 import kotlinx.coroutines.flow.*
@@ -37,6 +38,13 @@ data class ImportUiState(
     val rawJson: String = "",
     val errors: List<String> = emptyList(),
     val preview: TrainingPlan? = null
+)
+
+data class PlanEditorUiState(
+    val rawJson: String = "",
+    val errors: List<String> = emptyList(),
+    val preview: TrainingPlan? = null,
+    val message: String? = null
 )
 
 data class PlanAssessmentUiState(
@@ -102,6 +110,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _assessment = MutableStateFlow(PlanAssessmentUiState())
     val assessment = _assessment.asStateFlow()
+
+    private val _editor = MutableStateFlow(PlanEditorUiState())
+    val editor = _editor.asStateFlow()
 
     fun seedAndActivateSample() = viewModelScope.launch {
         val plan = SamplePlan.competitiveRebuild()
@@ -259,6 +270,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         workouts.complete(session.id)
         _workout.value = WorkoutUiState(message = "$completedName completed. Refreshing your next workout.")
         refreshProgramState()
+    }
+
+    fun updateEditorJson(value: String) {
+        _editor.value = _editor.value.copy(rawJson = value, errors = emptyList(), preview = null, message = null)
+    }
+
+    fun validateEditedPlan() {
+        val result = PlanEditEngine.validate(_editor.value.rawJson)
+        _editor.value = _editor.value.copy(preview = result.plan, errors = result.errors, message = null)
+    }
+
+    fun saveEditedPlan() = viewModelScope.launch {
+        val plan = _editor.value.preview ?: return@launch
+        plans.save(plan)
+        plans.activate(plan.id)
+        refreshProgramState()
+        _editor.value = PlanEditorUiState(message = "Revised plan saved and activated. Historical workout sessions remain unchanged.")
+    }
+
+    fun dismissEditorMessage() {
+        _editor.value = _editor.value.copy(message = null)
     }
 
     fun updateAssessmentRequest(request: PlanAssessmentRequest) {

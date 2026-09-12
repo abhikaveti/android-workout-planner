@@ -217,3 +217,16 @@ fun PlanAssessmentScreen(state: PlanAssessmentUiState, onUpdate: (PlanAssessment
         } } }
     }
 }
+
+
+@Composable
+fun PlanEditorScreen(state: PlanEditorUiState, onUpdate: (String) -> Unit, onValidate: () -> Unit, onSave: () -> Unit, onDismiss: () -> Unit) {
+    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { Text("Plan Revision", style = MaterialTheme.typography.headlineMedium); Text("Edit a plan as JSON, validate it against the canonical schema, then save the revised version. Existing completed workout history is not rewritten.") }
+        item { OutlinedTextField(value = state.rawJson, onValueChange = onUpdate, modifier = Modifier.fillMaxWidth().height(300.dp), label = { Text("Revised plan JSON") }, minLines = 12) }
+        item { Button(onClick = onValidate, enabled = state.rawJson.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Validate Revision") } }
+        if (state.errors.isNotEmpty()) item { ElevatedCard { Column(Modifier.padding(14.dp)) { Text("Validation issues", style = MaterialTheme.typography.titleMedium); state.errors.forEach { Text("• " + it) } } } }
+        state.preview?.let { plan -> item { ElevatedCard { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("Revision Ready", style = MaterialTheme.typography.titleLarge); Text(plan.name); Text("Goal: " + plan.goal); Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) { Text("Save & Activate Revision") } } } } }
+    }
+    state.message?.let { message -> AlertDialog(onDismissRequest = onDismiss, confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } }, title = { Text("Plan Revision") }, text = { Text(message) }) }
+}
