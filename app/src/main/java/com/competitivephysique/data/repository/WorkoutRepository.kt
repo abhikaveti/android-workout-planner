@@ -34,6 +34,32 @@ class WorkoutRepository(private val dao: CompetitivePhysiqueDao) {
     suspend fun current(): WorkoutSessionEntity? = dao.getCurrentSession()
     suspend fun exercises(workoutId: String) = dao.getExercisesForWorkout(workoutId)
 
+    suspend fun updateExercise(
+        exerciseId: String,
+        name: String,
+        targetSets: Int,
+        minReps: Int,
+        maxReps: Int,
+        restSeconds: Int?,
+        notes: String?
+    ) {
+        require(name.isNotBlank()) { "Exercise name is required." }
+        require(targetSets > 0) { "Target sets must be positive." }
+        require(minReps > 0 && maxReps >= minReps) { "Rep range is invalid." }
+
+        val current = requireNotNull(dao.getExercise(exerciseId)) { "Exercise not found." }
+        dao.updateExercise(
+            current.copy(
+                name = name.trim(),
+                targetSets = targetSets,
+                minReps = minReps,
+                maxReps = maxReps,
+                restSeconds = restSeconds,
+                notes = notes?.trim()?.takeIf { it.isNotBlank() }
+            )
+        )
+    }
+
     suspend fun logSet(sessionId: String, exerciseId: String, setNumber: Int, weight: Double, reps: Int, rir: Int?) {
         val validation = SetValidator.validate(weight, reps, rir)
         require(validation is SetValidationResult.Valid) {
@@ -45,6 +71,29 @@ class WorkoutRepository(private val dao: CompetitivePhysiqueDao) {
                 workoutSessionId = sessionId,
                 exerciseDefinitionId = exerciseId,
                 setNumber = setNumber,
+                weightKg = weight,
+                reps = reps,
+                rir = rir
+            )
+        )
+    }
+
+    suspend fun updateSet(
+        sessionId: String,
+        exerciseId: String,
+        setNumber: Int,
+        weight: Double,
+        reps: Int,
+        rir: Int?
+    ) {
+        val validation = SetValidator.validate(weight, reps, rir)
+        require(validation is SetValidationResult.Valid) {
+            (validation as SetValidationResult.Invalid).message
+        }
+        val id = "$sessionId-$exerciseId-$setNumber"
+        val current = requireNotNull(dao.getSetLog(id)) { "Saved set not found." }
+        dao.updateSetLog(
+            current.copy(
                 weightKg = weight,
                 reps = reps,
                 rir = rir
