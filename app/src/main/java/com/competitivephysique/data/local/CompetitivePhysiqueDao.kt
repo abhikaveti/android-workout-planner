@@ -47,6 +47,9 @@ interface CompetitivePhysiqueDao {
     @Query("SELECT * FROM exercise_definitions WHERE id = :id LIMIT 1")
     suspend fun getExercise(id: String): ExerciseDefinitionEntity?
 
+    @Update
+    suspend fun updateExercise(exercise: ExerciseDefinitionEntity)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExercises(exercises: List<ExerciseDefinitionEntity>)
 
@@ -79,6 +82,15 @@ interface CompetitivePhysiqueDao {
 
     @Query("SELECT * FROM set_logs WHERE workoutSessionId = :sessionId ORDER BY exerciseDefinitionId, setNumber")
     suspend fun getSetLogs(sessionId: String): List<SetLogEntity>
+
+    @Query("SELECT * FROM set_logs WHERE id = :id LIMIT 1")
+    suspend fun getSetLog(id: String): SetLogEntity?
+
+    @Update
+    suspend fun updateSetLog(setLog: SetLogEntity)
+
+    @Query("DELETE FROM set_logs WHERE id = :id")
+    suspend fun deleteSetLog(id: String)
 
     @Query("SELECT s.* FROM set_logs s INNER JOIN workout_sessions ws ON ws.id = s.workoutSessionId WHERE ws.planId = :planId AND ws.status = 'COMPLETED' AND s.exerciseDefinitionId = :exerciseId ORDER BY ws.completedAt DESC, s.setNumber ASC")
     suspend fun getCompletedExerciseSets(planId: String, exerciseId: String): List<SetLogEntity>
