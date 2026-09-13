@@ -44,15 +44,17 @@ sealed interface PlanImportResult {
     data class Failure(val errors: List<String>) : PlanImportResult
 }
 
-object PlanImporter {
-    private val json = Json {
+object PlanJsonCodec {
+    val json = Json {
         ignoreUnknownKeys = true
-        prettyPrint = false
+        prettyPrint = true
     }
+}
 
+object PlanImporter {
     fun parse(raw: String): PlanImportResult {
         return try {
-            val dto = json.decodeFromString<PlanImportDto>(raw)
+            val dto = PlanJsonCodec.json.decodeFromString<PlanImportDto>(raw)
             if (dto.schemaVersion != 1) {
                 return PlanImportResult.Failure(listOf("Unsupported schemaVersion: ${dto.schemaVersion}."))
             }
