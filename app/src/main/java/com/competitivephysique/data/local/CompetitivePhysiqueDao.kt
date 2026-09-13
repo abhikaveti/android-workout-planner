@@ -29,6 +29,12 @@ interface CompetitivePhysiqueDao {
     @Query("SELECT * FROM training_phases WHERE planId = :planId ORDER BY sequenceOrder")
     suspend fun getPhases(planId: String): List<TrainingPhaseEntity>
 
+    @Query("SELECT * FROM training_phases WHERE id = :phaseId LIMIT 1")
+    suspend fun getPhase(phaseId: String): TrainingPhaseEntity?
+
+    @Query("SELECT * FROM training_phases WHERE id = :phaseId LIMIT 1")
+    suspend fun getPhasesForWorkout(phaseId: String): List<TrainingPhaseEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPhases(phases: List<TrainingPhaseEntity>)
 
