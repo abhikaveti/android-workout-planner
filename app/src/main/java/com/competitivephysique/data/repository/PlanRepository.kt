@@ -30,6 +30,35 @@ class PlanRepository(private val dao: CompetitivePhysiqueDao) {
         dao.replacePlan(planEntity, phases, workouts, exercises)
     }
 
+    suspend fun updateActiveExercise(
+        exerciseId: String,
+        name: String,
+        targetSets: Int,
+        minReps: Int,
+        maxReps: Int,
+        restSeconds: Int?,
+        notes: String?
+    ) {
+        require(name.isNotBlank()) { "Exercise name is required." }
+        require(targetSets > 0) { "Target sets must be positive." }
+        require(minReps > 0 && maxReps >= minReps) { "Rep range is invalid." }
+        val current = requireNotNull(dao.getExercise(exerciseId)) { "Exercise not found." }
+        val workout = requireNotNull(dao.getWorkout(current.workoutId)) { "Workout not found." }
+        val phase = requireNotNull(dao.getPhasesForWorkout(workout.phaseId).firstOrNull()) { "Phase not found." }
+        val plan = requireNotNull(dao.getPlan(phase.planId)) { "Plan not found." }
+        require(plan.isActive) { "Only exercises in the active plan can be edited." }
+        dao.updateExercise(
+            current.copy(
+                name = name.trim(),
+                targetSets = targetSets,
+                minReps = minReps,
+                maxReps = maxReps,
+                restSeconds = restSeconds,
+                notes = notes?.trim()?.takeIf { it.isNotBlank() }
+            )
+        )
+    }
+
     suspend fun activate(planId: String) {
         requireNotNull(dao.getPlan(planId)) { "Plan not found." }
         dao.deactivateAllPlans()
@@ -51,5 +80,75 @@ class PlanRepository(private val dao: CompetitivePhysiqueDao) {
 
         val completed = dao.completedSessionCount(active.id)
         return weeklySchedule.getOrNull(completed)
+    }
+
+    suspend fun currentActivePlanExport(): TrainingPlan {
+        val active = requireNotNull(dao.getActivePlan()) { "No active plan to export." }
+        val phases = dao.getPhases(active.id).sortedBy { it.sequenceOrder }
+        return TrainingPlan(
+            id = active.id,
+            name = active.name,
+            goal = active.goal,
+            phases = phases.map { phase ->
+                TrainingPhase(
+                    id = phase.id,
+                    name = phase.name,
+                    startWeek = phase.startWeek,
+                    endWeek = phase.endWeek,
+                    workouts = dao.getWorkoutsForPhase(phase.id).map { workout ->
+                        Workout(
+                            id = workout.id,
+                            name = workout.name,
+                            exercises = dao.getExercisesForWorkout(workout.id).map { exercise ->
+                                PlannedExercise(
+                                    id = exercise.id,
+                                    name = exercise.name,
+                                    targetSets = exercise.targetSets,
+                                    minReps = exercise.minReps,
+                                    maxReps = exercise.maxReps,
+                                    restSeconds = exercise.restSeconds,
+                                    notes = exercise.notes
+                                )
+                            }
+                        )
+                    }
+                )
+            }
+        )
+    }
+
+    suspend fun currentActivePlanExportDto(): PlanImportDto {
+        val plan = currentActivePlanExport()
+        return PlanImportDto(
+            schemaVersion = plan.schemaVersion,
+            id = plan.id,
+            name = plan.name,
+            goal = plan.goal,
+            phases = plan.phases.map { phase ->
+                PhaseImportDto(
+                    id = phase.id,
+                    name = phase.name,
+                    startWeek = phase.startWeek,
+                    endWeek = phase.endWeek,
+                    workouts = phase.workouts.map { workout ->
+                        WorkoutImportDto(
+                            id = workout.id,
+                            name = workout.name,
+                            exercises = workout.exercises.map { exercise ->
+                                ExerciseImportDto(
+                                    id = exercise.id,
+                                    name = exercise.name,
+                                    targetSets = exercise.targetSets,
+                                    minReps = exercise.minReps,
+                                    maxReps = exercise.maxReps,
+                                    restSeconds = exercise.restSeconds,
+                                    notes = exercise.notes
+                                )
+                            }
+                        )
+                    }
+                )
+            }
+        )
     }
 }
