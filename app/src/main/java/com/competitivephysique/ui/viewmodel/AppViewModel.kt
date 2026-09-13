@@ -289,6 +289,72 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _workout.value = _workout.value.copy(message = "Set saved locally.")
     }
 
+    fun updateLoggedSet(setLogId: String, weight: String, reps: String, rir: String) = viewModelScope.launch {
+        val session = _workout.value.session ?: return@launch
+        val parsedWeight = weight.trim().toDoubleOrNull()
+        val parsedReps = reps.trim().toIntOrNull()
+        val parsedRir = rir.trim().takeIf { it.isNotEmpty() }?.toIntOrNull()
+        when (val validation = SetValidator.validate(parsedWeight, parsedReps, parsedRir)) {
+            is SetValidationResult.Invalid -> {
+                _workout.value = _workout.value.copy(message = validation.message)
+                return@launch
+            }
+            SetValidationResult.Valid -> Unit
+        }
+        workouts.updateLoggedSet(setLogId, parsedWeight!!, parsedReps!!, parsedRir)
+        loadSession(session)
+        _workout.value = _workout.value.copy(message = "Saved set updated.")
+    }
+
+    fun updateActiveExercise(
+        exerciseId: String,
+        name: String,
+        targetSets: String,
+        minReps: String,
+        maxReps: String,
+        restSeconds: String,
+        notes: String
+    ) = viewModelScope.launch {
+        val parsedSets = targetSets.trim().toIntOrNull()
+        val parsedMinReps = minReps.trim().toIntOrNull()
+        val parsedMaxReps = maxReps.trim().toIntOrNull()
+        val parsedRest = restSeconds.trim().takeIf { it.isNotEmpty() }?.toIntOrNull()
+        val error = when {
+            name.isBlank() -> "Exercise name is required."
+            parsedSets == null || parsedSets <= 0 -> "Sets must be a positive whole number."
+            parsedMinReps == null || parsedMaxReps == null || parsedMinReps <= 0 || parsedMaxReps < parsedMinReps -> "Rep range is invalid."
+            parsedRest != null && parsedRest <= 0 -> "Rest must be positive when provided."
+            else -> null
+        }
+        if (error != null) {
+            _workout.value = _workout.value.copy(message = error)
+            return@launch
+        }
+        try {
+            plans.updateActiveExercise(
+                exerciseId, name, parsedSets!!, parsedMinReps!!, parsedMaxReps!!, parsedRest, notes
+            )
+            val session = _workout.value.session
+            if (session != null) loadSession(session)
+            refreshProgramState()
+            _workout.value = _workout.value.copy(message = "Exercise updated in the active plan.")
+        } catch (e: IllegalArgumentException) {
+            _workout.value = _workout.value.copy(message = e.message ?: "Unable to update exercise.")
+        }
+    }
+
+    fun exportActivePlan(uri: Uri) = viewModelScope.launch {
+        try {
+            val json = plans.exportActivePlanJson()
+            val context = getApplication<Application>()
+            context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(json) }
+                ?: error("Unable to open the selected location.")
+            _workout.value = _workout.value.copy(message = "Active plan exported.")
+        } catch (e: Exception) {
+            _workout.value = _workout.value.copy(message = e.message ?: "Unable to export the active plan.")
+        }
+    }
+
     fun requestCompleteWorkout() = viewModelScope.launch {
         val state = _workout.value
         val session = state.session ?: return@launch

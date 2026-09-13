@@ -1,6 +1,8 @@
 package com.competitivephysique.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -43,6 +45,9 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
     val coach by vm.coach.collectAsState()
     val generation by vm.generation.collectAsState()
     val assessment by vm.assessment.collectAsState()
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> uri?.let(vm::exportActivePlan) }
 
     LaunchedEffect(active?.id) { vm.refreshProgramState() }
 
@@ -68,16 +73,27 @@ fun CompetitivePhysiqueApp(vm: AppViewModel = viewModel()) {
                     AppTab.GENERATE -> PlanGenerationScreen(generation, vm::updateGenerationProfile, vm::generatePlanPrompt)
                     AppTab.ASSESS -> PlanAssessmentScreen(assessment, vm::updateAssessmentRequest, vm::generateAssessmentPrompt)
                     AppTab.WORKOUT -> if (executing) {
-                        WorkoutScreen(workout, vm::logSet, vm::requestCompleteWorkout, vm::confirmCompleteWorkout, vm::cancelCompletion, vm::dismissWorkoutMessage) { vm.dismissProgramCompletion(); navigateTo(AppTab.ASSESS) }
+                        WorkoutScreen(
+                            state = workout,
+                            onLog = vm::logSet,
+                            onEditSet = vm::updateLoggedSet,
+                            onEditExercise = vm::updateActiveExercise,
+                            onComplete = vm::requestCompleteWorkout,
+                            onConfirmComplete = vm::confirmCompleteWorkout,
+                            onCancelComplete = vm::cancelCompletion,
+                            onDismiss = vm::dismissWorkoutMessage
+                        ) { vm.dismissProgramCompletion(); navigateTo(AppTab.ASSESS) }
                     } else {
                         WorkoutOverviewScreen(
                             items = overview,
                             currentWeek = programState.currentWeek,
-                            totalWeeks = overview.maxOfOrNull { it.weekNumber } ?: 1
-                        ) { workoutId ->
-                            executing = true
-                            vm.selectWorkout(workoutId)
-                        }
+                            totalWeeks = overview.maxOfOrNull { it.weekNumber } ?: 1,
+                            onSelect = { workoutId ->
+                                executing = true
+                                vm.selectWorkout(workoutId)
+                            },
+                            onExport = { exportLauncher.launch("active-training-plan.json") }
+                        )
                     }
                     AppTab.PROGRESS -> ProgressScreen(history, analytics)
                     AppTab.COACH -> CoachScreen(coach, vm::generateCoachPrompt, vm::dismissCoachMessage)

@@ -52,6 +52,15 @@ class WorkoutRepository(private val dao: CompetitivePhysiqueDao) {
         )
     }
 
+    suspend fun updateLoggedSet(setLogId: String, weight: Double, reps: Int, rir: Int?) {
+        val validation = SetValidator.validate(weight, reps, rir)
+        require(validation is SetValidationResult.Valid) {
+            (validation as SetValidationResult.Invalid).message
+        }
+        val existing = requireNotNull(dao.getSetLog(setLogId)) { "Saved set not found." }
+        dao.updateSetLog(existing.copy(weightKg = weight, reps = reps, rir = rir))
+    }
+
     fun observeSets(sessionId: String): Flow<List<SetLogEntity>> = dao.observeSetLogs(sessionId)
     suspend fun logs(sessionId: String): List<SetLogEntity> = dao.getSetLogs(sessionId)
     suspend fun completed(planId: String): List<WorkoutSessionEntity> = dao.getCompletedSessions(planId)

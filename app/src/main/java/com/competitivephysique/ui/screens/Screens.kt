@@ -25,6 +25,8 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -45,6 +47,10 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import com.competitivephysique.data.local.ExerciseDefinitionEntity
+import com.competitivephysique.data.local.SetLogEntity
 import com.competitivephysique.domain.assessment.PlanAssessmentRequest
 import com.competitivephysique.domain.generation.PlanGenerationProfile
 import com.competitivephysique.domain.progression.ProgressionRecommendation
@@ -127,7 +133,8 @@ fun WorkoutOverviewScreen(
     items: List<WorkoutOverviewItem>,
     currentWeek: Int,
     totalWeeks: Int,
-    onSelect: (String) -> Unit
+    onSelect: (String) -> Unit,
+    onExport: () -> Unit
 ) {
     var selectedWeek by remember { mutableStateOf(currentWeek.coerceAtLeast(1)) }
     var weekMenuExpanded by remember { mutableStateOf(false) }
@@ -140,6 +147,9 @@ fun WorkoutOverviewScreen(
     val selectedLocked = weekItems.isNotEmpty() && weekItems.all { it.locked }
 
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (items.isNotEmpty()) item {
+            OutlinedButton(onClick = onExport, modifier = Modifier.fillMaxWidth()) { Text("Export Active Plan") }
+        }
         item {
             Row(
                 Modifier.fillMaxWidth(),
@@ -251,15 +261,32 @@ private fun ProgressionRecommendation.message(): String? = when (this) {
 }
 
 @Composable
-fun WorkoutScreen(state: WorkoutUiState, onLog: (String, Int, String, String, String) -> Unit, onComplete: () -> Unit, onConfirmComplete: () -> Unit, onCancelComplete: () -> Unit, onDismiss: () -> Unit, onAssessResults: () -> Unit) {
+fun WorkoutScreen(
+    state: WorkoutUiState,
+    onLog: (String, Int, String, String, String) -> Unit,
+    onEditSet: (String, String, String, String) -> Unit,
+    onEditExercise: (String, String, String, String, String, String, String) -> Unit,
+    onComplete: () -> Unit,
+    onConfirmComplete: () -> Unit,
+    onCancelComplete: () -> Unit,
+    onDismiss: () -> Unit,
+    onAssessResults: () -> Unit
+) {
     if (state.session == null) {
         Column(Modifier.fillMaxSize().padding(20.dp)) { Text("Workout", style = MaterialTheme.typography.headlineMedium); Text("Select a workout card to start or resume training.") }
     } else {
         val fields = remember(state.session.id) { mutableStateMapOf<String, Triple<String,String,String>>() }
+        var editingExercise by remember { mutableStateOf<ExerciseDefinitionEntity?>(null) }
+        var editingSet by remember { mutableStateOf<SetLogEntity?>(null) }
         LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             item { Text(state.workoutName, style = MaterialTheme.typography.headlineMedium); Text("Session data is saved immediately on this device.") }
             state.exercises.forEach { exercise -> item { ElevatedCard { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(exercise.name, style = MaterialTheme.typography.titleLarge)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(exercise.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    IconButton(onClick = { editingExercise = exercise }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit exercise")
+                    }
+                }
                 state.progression.firstOrNull { it.exercise.id == exercise.id }?.recommendation?.message()?.let { recommendation ->
                     Card {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -271,7 +298,12 @@ fun WorkoutScreen(state: WorkoutUiState, onLog: (String, Int, String, String, St
                 repeat(exercise.targetSets) { index ->
                     val setNo = index + 1; val key = exercise.id + "-" + setNo
                     val saved = state.logs.firstOrNull { it.exerciseDefinitionId == exercise.id && it.setNumber == setNo }
-                    if (saved != null) AssistChip(onClick = {}, label = { Text("Set " + setNo + " ✓  " + saved.weightKg + " kg × " + saved.reps + " RIR " + (saved.rir ?: "-")) })
+                    if (saved != null) Row(verticalAlignment = Alignment.CenterVertically) {
+                        AssistChip(onClick = { editingSet = saved }, label = { Text("Set " + setNo + " ✓  " + saved.weightKg + " kg × " + saved.reps + " RIR " + (saved.rir ?: "-")) })
+                        IconButton(onClick = { editingSet = saved }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit saved set")
+                        }
+                    }
                     else {
                         val current = fields[key] ?: Triple("", "", "")
                         Text("Set " + setNo)
@@ -286,6 +318,26 @@ fun WorkoutScreen(state: WorkoutUiState, onLog: (String, Int, String, String, St
             } } } }
             item { Button(onClick = onComplete, modifier = Modifier.fillMaxWidth()) { Text("Complete Workout") } }
         }
+        editingExercise?.let { exercise ->
+            ExerciseEditDialog(
+                exercise = exercise,
+                onDismiss = { editingExercise = null },
+                onSave = { name, sets, minReps, maxReps, rest, notes ->
+                    onEditExercise(exercise.id, name, sets, minReps, maxReps, rest, notes)
+                    editingExercise = null
+                }
+            )
+        }
+        editingSet?.let { setLog ->
+            SetEditDialog(
+                setLog = setLog,
+                onDismiss = { editingSet = null },
+                onSave = { weight, reps, rir ->
+                    onEditSet(setLog.id, weight, reps, rir)
+                    editingSet = null
+                }
+            )
+        }
     }
     if (state.confirmCompletion) AlertDialog(onDismissRequest=onCancelComplete,title={Text("Complete workout?")},text={Text(state.completionMessage ?: "")},dismissButton={TextButton(onClick=onCancelComplete){Text("Continue Workout")}},confirmButton={TextButton(onClick=onConfirmComplete){Text("Complete Anyway")}})
     state.message?.let { message -> AlertDialog(onDismissRequest=onDismiss,confirmButton={TextButton(onClick=onDismiss){Text("OK")}},title={Text("Workout")},text={Text(message)}) }
@@ -295,6 +347,58 @@ fun WorkoutScreen(state: WorkoutUiState, onLog: (String, Int, String, String, St
         text = { Text("All planned workouts are complete. Great work! Review your results and assess the outcome of this training cycle.") },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Later") } },
         confirmButton = { Button(onClick = onAssessResults) { Text("Assess My Results") } }
+    )
+}
+
+@Composable
+private fun ExerciseEditDialog(
+    exercise: ExerciseDefinitionEntity,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, String, String, String) -> Unit
+) {
+    var name by remember(exercise.id) { mutableStateOf(exercise.name) }
+    var sets by remember(exercise.id) { mutableStateOf(exercise.targetSets.toString()) }
+    var minReps by remember(exercise.id) { mutableStateOf(exercise.minReps.toString()) }
+    var maxReps by remember(exercise.id) { mutableStateOf(exercise.maxReps.toString()) }
+    var rest by remember(exercise.id) { mutableStateOf(exercise.restSeconds?.toString().orEmpty()) }
+    var notes by remember(exercise.id) { mutableStateOf(exercise.notes.orEmpty()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Exercise") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(name, { name = it }, label = { Text("Exercise name") })
+                OutlinedTextField(sets, { sets = it }, label = { Text("Sets") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(minReps, { minReps = it }, modifier = Modifier.weight(1f), label = { Text("Min reps") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    OutlinedTextField(maxReps, { maxReps = it }, modifier = Modifier.weight(1f), label = { Text("Max reps") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                }
+                OutlinedTextField(rest, { rest = it }, label = { Text("Rest seconds") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                OutlinedTextField(notes, { notes = it }, label = { Text("Notes") })
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onSave(name, sets, minReps, maxReps, rest, notes) }) { Text("Save") } }
+    )
+}
+
+@Composable
+private fun SetEditDialog(setLog: SetLogEntity, onDismiss: () -> Unit, onSave: (String, String, String) -> Unit) {
+    var weight by remember(setLog.id) { mutableStateOf(setLog.weightKg.toString()) }
+    var reps by remember(setLog.id) { mutableStateOf(setLog.reps.toString()) }
+    var rir by remember(setLog.id) { mutableStateOf(setLog.rir?.toString().orEmpty()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Set ${setLog.setNumber}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(weight, { weight = it }, label = { Text("kg") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+                OutlinedTextField(reps, { reps = it }, label = { Text("Reps") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                OutlinedTextField(rir, { rir = it }, label = { Text("RIR") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onSave(weight, reps, rir) }) { Text("Save") } }
     )
 }
 

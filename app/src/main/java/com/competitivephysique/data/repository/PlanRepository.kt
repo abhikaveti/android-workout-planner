@@ -36,6 +36,71 @@ class PlanRepository(private val dao: CompetitivePhysiqueDao) {
         dao.activatePlan(planId)
     }
 
+    suspend fun updateActiveExercise(
+        exerciseId: String,
+        name: String,
+        targetSets: Int,
+        minReps: Int,
+        maxReps: Int,
+        restSeconds: Int?,
+        notes: String?
+    ) {
+        val active = requireNotNull(dao.getActivePlan()) { "No active plan." }
+        val existing = requireNotNull(dao.getExercise(exerciseId)) { "Exercise not found." }
+        val phaseId = dao.getWorkout(existing.workoutId)?.phaseId
+        require(phaseId != null && dao.getPhases(active.id).any { it.id == phaseId }) {
+            "Exercise does not belong to the active plan."
+        }
+        require(name.isNotBlank()) { "Exercise name is required." }
+        require(targetSets > 0) { "Sets must be positive." }
+        require(minReps > 0 && maxReps >= minReps) { "Rep range is invalid." }
+        require(restSeconds == null || restSeconds > 0) { "Rest must be positive when provided." }
+        dao.updateExercise(existing.copy(
+            name = name.trim(),
+            targetSets = targetSets,
+            minReps = minReps,
+            maxReps = maxReps,
+            restSeconds = restSeconds,
+            notes = notes?.trim()?.takeIf { it.isNotEmpty() }
+        ))
+    }
+
+    /** Rehydrates the persisted hierarchy so exports never depend on imported JSON or UI state. */
+    suspend fun exportActivePlanJson(): String {
+        val active = requireNotNull(dao.getActivePlan()) { "No active plan to export." }
+        val plan = TrainingPlan(
+            id = active.id,
+            name = active.name,
+            goal = active.goal,
+            phases = dao.getPhases(active.id).map { phase ->
+                TrainingPhase(
+                    id = phase.id,
+                    name = phase.name,
+                    startWeek = phase.startWeek,
+                    endWeek = phase.endWeek,
+                    workouts = dao.getWorkoutsForPhase(phase.id).map { workout ->
+                        Workout(
+                            id = workout.id,
+                            name = workout.name,
+                            exercises = dao.getExercisesForWorkout(workout.id).map { exercise ->
+                                PlannedExercise(
+                                    id = exercise.id,
+                                    name = exercise.name,
+                                    targetSets = exercise.targetSets,
+                                    minReps = exercise.minReps,
+                                    maxReps = exercise.maxReps,
+                                    restSeconds = exercise.restSeconds,
+                                    notes = exercise.notes
+                                )
+                            }
+                        )
+                    }
+                )
+            }
+        )
+        return PlanExportCodec.encode(plan)
+    }
+
     suspend fun nextWorkout(): WorkoutDefinitionEntity? {
         val active = dao.getActivePlan() ?: return null
         val phases = dao.getPhases(active.id)

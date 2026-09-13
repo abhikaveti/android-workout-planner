@@ -50,6 +50,9 @@ interface CompetitivePhysiqueDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExercises(exercises: List<ExerciseDefinitionEntity>)
 
+    @Update
+    suspend fun updateExercise(exercise: ExerciseDefinitionEntity)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertWorkoutSession(session: WorkoutSessionEntity)
 
@@ -73,6 +76,12 @@ interface CompetitivePhysiqueDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertSetLog(setLog: SetLogEntity)
+
+    @Update
+    suspend fun updateSetLog(setLog: SetLogEntity)
+
+    @Query("SELECT * FROM set_logs WHERE id = :id LIMIT 1")
+    suspend fun getSetLog(id: String): SetLogEntity?
 
     @Query("SELECT * FROM set_logs WHERE workoutSessionId = :sessionId ORDER BY exerciseDefinitionId, setNumber")
     fun observeSetLogs(sessionId: String): Flow<List<SetLogEntity>>
