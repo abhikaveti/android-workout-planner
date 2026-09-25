@@ -141,6 +141,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val completed = dao.getCompletedSessions(active.id)
+        val completedWorkoutIds = completed.map { it.workoutDefinitionId }.toSet()
         val current = dao.getCurrentSession()?.takeIf { it.planId == active.id }
 
         val phases = dao.getPhases(active.id).sortedBy { it.sequenceOrder }
@@ -162,8 +163,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val locked = !resolvedState.programComplete && weekNumber > resolvedState.currentWeek
             val status = when {
                 locked -> WorkoutDisplayStatus.NOT_STARTED
-                occurrenceIndex < completed.size -> WorkoutDisplayStatus.COMPLETED
-                current != null && occurrenceIndex == completed.size -> WorkoutDisplayStatus.IN_PROGRESS
+                current?.workoutDefinitionId == definition.id -> WorkoutDisplayStatus.IN_PROGRESS
+                definition.id in completedWorkoutIds -> WorkoutDisplayStatus.COMPLETED
                 occurrenceIndex == completed.size -> WorkoutDisplayStatus.NEXT
                 else -> WorkoutDisplayStatus.NOT_STARTED
             }
