@@ -83,7 +83,7 @@ fun HomeScreen(plan: String?, next: String?, completedCount: Int, programState: 
 }
 
 @Composable
-fun StatusChip(status: WorkoutDisplayStatus, locked: Boolean = false) {
+fun StatusChip(status: WorkoutDisplayStatus, locked: Boolean = false, onClick: () -> Unit = {}) {
     if (locked) return
 
     // NEXT is a scheduling state; visually it belongs to NOT STARTED.
@@ -114,8 +114,8 @@ fun StatusChip(status: WorkoutDisplayStatus, locked: Boolean = false) {
     }
 
     AssistChip(
-        onClick = {},
-        enabled = false,
+        onClick = onClick,
+        enabled = !locked,
         colors = colors,
         label = { Text(label, style = MaterialTheme.typography.labelMedium) }
     )
@@ -233,7 +233,9 @@ fun WorkoutOverviewScreen(
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
-                            StatusChip(workoutItem.status, workoutItem.locked)
+                            StatusChip(workoutItem.status, workoutItem.locked) {
+                                if (!workoutItem.locked) onSelect(workoutItem.definition.id)
+                            }
                         }
                     }
                 }
